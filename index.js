@@ -1,7 +1,6 @@
 /* global require, console, module */
 
 var level = require('level'),
-	argent = require('argent'),
 	encode = require('./encode.js'),
 	db, noop = function() {};
 
