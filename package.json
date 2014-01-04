@@ -1,7 +1,7 @@
 {
-  "name": "redindex",
+  "name": "objectlevel",
   "version": "0.1.0",
-  "description": "An indexed object store on Node.js and Redis",
+  "description": "An indexed object store on Node.js and LevelDB",
   "main": "index.js",
   "scripts": {
     "test": "node test/test.js"
@@ -11,14 +11,12 @@
     "url": "git://github.com/scrollback/redindex"
   },
   "dependencies": {
-    "level": "x",
-    "argent": "git://github.com/scrollback/argent.git"
+    "level": "x"
   },
   "author": "scrollback",
   "license": "MIT",
   "readmeFilename": "README.md",
-  "gitHead": "bde87c5efd9599c3bd33cb297bc68d256689e3d4",
   "bugs": {
-    "url": "https://github.com/scrollback/redindex/issues"
+    "url": "https://github.com/scrollback/objectlevel/issues"
   }
 }
