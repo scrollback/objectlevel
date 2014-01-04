@@ -1,0 +1,24 @@
+{
+  "name": "redindex",
+  "version": "0.1.0",
+  "description": "An indexed object store on Node.js and Redis",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test/test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/scrollback/redindex"
+  },
+  "dependencies": {
+    "level": "x",
+    "argent": "git://github.com/scrollback/argent.git"
+  },
+  "author": "scrollback",
+  "license": "MIT",
+  "readmeFilename": "README.md",
+  "gitHead": "bde87c5efd9599c3bd33cb297bc68d256689e3d4",
+  "bugs": {
+    "url": "https://github.com/scrollback/redindex/issues"
+  }
+}
