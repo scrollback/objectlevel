@@ -29,6 +29,6 @@ module.exports = function (value) {
 		x.writeUInt8(h,0);
 	}
 	
-	return x;
-}
+	return x.toString('base64');
+};
 

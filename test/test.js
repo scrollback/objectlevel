@@ -1,71 +1,149 @@
-/* global require, console, process */
+/* global module, require, console */
+
 var store = require("../index.js"),
-	assert = require("assert");
+	assert = require("assert"),
+	words = require("./words.js"),
+	util = require("util");
+
+Array.prototype.inspect = function(depth) {
+	var str = '[', i;
+	for(i=0; i<this.length && str.length < 72; i++) {
+		str += util.inspect(this[i], {colors: true,depth: depth-1}) + (i<this.length-1? ', ': '');
+	}
+	
+	return str + (this.length>i? '+' + (this.length-i): '') + ']';
+};
+
+var test = (function() {
+	var tests = [], labels=[], i=0, running = false;
+	
+	function next(err, data) {
+		console.log(
+			labels[i] + Array(20-labels[i].length).join(' ') +
+			(arguments.length? util.inspect(
+				(arguments.length > 2? arguments: err || data),
+				{depth: 2, colors: true}
+			).replace(/\n\s*/g, ' '): 'Ok')
+		);
+		i++;
+		if(tests[i]) tests[i](next);
+		else running = false;
+	}
+	
+	return function (label, test) {
+		labels.push(label); tests.push(test);
+		if(!running) {
+			running = true;
+			test(next);
+		}
+	};
+}());
+
+var rooms = store('rooms');
+var users = store('users');
 
 var messages = store('messages', {
 	indexes: {
-		totime: function (room, emit) {
-			emit(room.to, room.time);
+		totime: function (msg, emit) {
+			emit(msg.to, -msg.time);
 		},
-		tolabeltime: function(room, emit) {
-			for(var i in room.labels) {
-				emit(room.to, i, room.time);
+		tolabeltime: function(msg, emit) {
+			if(msg.labels) for(var i in msg.labels) {
+				emit(msg.to, i, -msg.time);
 			}
 		}
 	}
 });
 
+store.defineLink({occupant: users, occupied: rooms});
+store.defineLink({follower: users, followed: rooms});
 
-function putMessage(n, cb) {
-	var m = {}, l=Math.random()*3, i;
-	if(n <= 0) return cb();
-	
-	m.id = 'm' + Math.floor(Math.random()*32768).toString(16);
-	m.text = Math.floor(Math.random()*32768).toString(3) + 
-		Math.floor(Math.random()*32768).toString(4) + 
-		Math.floor(Math.random()*32768).toString(5);
-	m.from = 'u'+ Math.floor(Math.random()*200).toString(4);
-	m.to = 'r'+ Math.floor(Math.random()*100).toString(4);
-	m.time = new Date().getTime() - n*2000 - Math.floor(Math.random()*2000);
-	m.labels = {};
-	for(i=0; i<l; i++) m.labels[i] = Math.random();
-	
-	messages.put(m, function(err) {
-		if(err) throw err;
-		putMessage(n-1, cb);
-	});
-}
-
-var start, end;
-
-store.connect('./testdb', function() {
-	var c = parseInt(process.argv[3]) || 1, i,
-		l = parseInt(process.argv[4]) || 1000;
-	
-	console.log(process.argv[2], c, 'threads of', l);
-	
-	if(process.argv[2] == 'put') {
-		start = new Date();
-		for(i=0; i<c; i++) {
-			putMessage(l, function() {
-				end = new Date();
-				console.log('put', l, 'in', end.getTime() - start.getTime());
-			});
-		}
-	} else if(process.argv[2] == 'get') {
-		start = new Date();
-		for(i=0; i<c; i++) messages.get({by: 'totime', start: ['',  0], limit: l}, function(err, res) {
-			var end = new Date();
-			if(err) throw err;
-			console.log('got', res.length, 'in', end.getTime() - start.getTime());
-		});
-	} else {
-		console.log("Usage: node test {put|get} [<concurrent_requests>] [<messages_per_request>]");
-	}
+test('connect', function (d) {
+	store.connect('./testdb2', d);
 });
 
-//
+test('putRooms', function (d) {
+	rooms.put([{id: 'scrollback'}, {id: 'nodejs'}], d);
+});
 
+test('putUsers', function(d) {
+	users.put([{id: 'aravind'}, {id: 'harish'}], d);
+});
 
-//messages.del('msg04');
-//
+test('putMessages', function(d) {
+	var m = [], n;
+	for(n=20; n>0; n--) m.push({
+		id: words.guid(32),
+		from: Math.random() < 0.5? 'aravind': 'harish',
+		to: Math.random() < 0.5? 'scrollback': 'nodejs',
+		type: 'text',
+		time: new Date().getTime() - n*2000 - Math.floor(Math.random()*2000),
+		text: words.paragraph(1)
+	});
+	
+	messages.put(m, d);
+});
+
+test('putRoom', function(d) {
+	rooms.put({id: 'bitcoin'}, d);
+});
+
+test('getOneRoom', function(d) {
+	rooms.get('nodejs', d);
+});
+
+test('getBadRoom', function(d) {
+	rooms.get('badroom', d);
+});
+
+test('getRooms', function(d) {
+	rooms.get(d);
+});
+
+test('getAllMessages', function(d) {
+	messages.get(d);
+});
+
+test('getSomeMessages', function(d) {
+	messages.get({by:'totime', start: ['scrollback'], end: ['scrollback']}, d);
+});
+
+test('addLink1', function(d) {
+	rooms.link('scrollback', 'occupant', 'aravind', {entered: 343}, d);
+});
+
+test('addLink2', function(d) {
+	rooms.link('bitcoin', 'occupant', 'aravind', d);
+});
+
+test('addLink3', function(d) {
+	users.link('harish', 'occupied', 'scrollback', {entered: 123}, d);
+});
+
+test('getLinkForward', function(d) {
+	rooms.get({by: 'occupant', eq: 'aravind'}, d);
+});
+
+test('getLinkReverse', function(d) {
+	users.get({by: 'occupied', eq: 'scrollback'}, d);
+});
+
+test('goodUnlink', function(d) {
+	users.unlink('aravind', 'occupied', 'bitcoin', d);
+});
+
+test('badUnlink', function(d) {
+	users.unlink('aravind', 'occupied', 'asdf', d);
+});
+
+test('getLinkEmpty', function(d) {
+	users.get({by: 'occupied', eq: 'bitcoin'}, d);
+});
+
+test('delete', function(d) {
+	rooms.del('scrollback', d);
+});
+
+test('getRooms2', function(d) {
+	rooms.get(d);
+});
