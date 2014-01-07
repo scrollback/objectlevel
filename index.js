@@ -15,9 +15,11 @@
 var db, files,
 	encode = require('./encode.js'),
 	noop = function() {},
-	flds = '|', // Must never occur in id's or index values
+	flds = '\0', // Must never occur in id's or index values
 	hdrs = ':'; // Must never occur in type, index or link 
 				// names and must be valid in filenames.
+
+// var perf = require("./test/perf.js");
 
 var objectlevel = function(type, opt) {
 	var api = {}, i;
@@ -51,13 +53,11 @@ var objectlevel = function(type, opt) {
 		var ix, ino = [], done = false;
 		
 		ino.push(type + flds + obj.id);
-		
 		for(ix in opt.indexes) {
 			opt.indexes[ix](obj, push);
 		}
-		
 		done = true;
-				
+		
 		function push() {
 			if(done) throw Error('ERR_INDEX_ASYNC_FUNCTION ' + type);
 			ino.push(type + hdrs + ix + indexVal(arguments) + flds + obj.id);
@@ -78,11 +78,9 @@ var objectlevel = function(type, opt) {
 		objs.forEach(function(obj) {
 			if(!obj.id) return cb(Error("ERR_PUT_BAD_OBJ " + JSON.stringify(obj)));
 			var range = files.put(obj, type);
-			
 			api.get(obj.id, function(err, old) {
 				var ino;
 				if(err && !err.notFound) return cb(Error("ERR_PUT_GET_OLD " + err.message));
-				
 				ino = indexes(obj);
 				ino.forEach(function(key) {
 					batch.push({type:'put', key:key, value:range});
@@ -234,7 +232,7 @@ var objectlevel = function(type, opt) {
 		cb = cb || noop;
 		if(typeof q === 'function') {
 			cb = q; q = {};
-		} 
+		}
 		
 		if(typeof q !== 'object') {
 			db.get(type + flds + q, function(err, range) {
@@ -288,7 +286,7 @@ var objectlevel = function(type, opt) {
 			if(--getc > 0) return;
 			if(err) return cb(Error("ERR_GET_QUERY " + err.message + ' ' + JSON.stringify(q)));
 			if(!res.length) cb(null, []);
-						
+			
 			res.forEach(function(range) {
 				fetc++;
 				files.get(range, type, function(err, obj) {

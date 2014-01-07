@@ -2,6 +2,8 @@
 
 var fs = require('fs'), files={};
 
+// var perf = require('./test/perf.js');
+
 var encode = JSON.stringify,
 	decode = JSON.parse;
 
@@ -65,7 +67,7 @@ module.exports = function(path) {
 
 function exec(file) {
 	var task = file.queue.shift(),
-		buf, range;
+		buf, range, t;
 	
 	if(!task) return;
 	

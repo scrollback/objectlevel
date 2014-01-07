@@ -1,6 +1,14 @@
 /* global require, console, process */
+
+//require('nodetime').profile({
+//    accountKey: 'd7140b8dea6f067724cc43b0b4a508c447ce73c7', 
+//    appName: 'Node.js Application'
+//});
+
 var store = require("../index.js"),
-	assert = require("assert");
+	assert = require("assert"),
+	words = require("./words.js"),
+	perf = require("./perf.js");
 
 var messages = store('messages', {
 	indexes: {
@@ -17,51 +25,56 @@ var messages = store('messages', {
 
 
 function putMessage(n, cb) {
-	var m = {}, l=Math.random()*3, i;
-	if(n <= 0) return cb();
-	
-	m.id = 'm' + Math.floor(Math.random()*32768).toString(16);
-	m.text = Math.floor(Math.random()*32768).toString(3) + 
-		Math.floor(Math.random()*32768).toString(4) + 
-		Math.floor(Math.random()*32768).toString(5);
-	m.from = 'u'+ Math.floor(Math.random()*200).toString(4);
-	m.to = 'r'+ Math.floor(Math.random()*100).toString(4);
-	m.time = new Date().getTime() - n*2000 - Math.floor(Math.random()*2000);
-	m.labels = {};
-	for(i=0; i<l; i++) m.labels[i] = Math.random();
-	
-	messages.put(m, function(err) {
-		if(err) throw err;
-		putMessage(n-1, cb);
+	var m = [];
+	for(n=20; n>0; n--) m.push({
+		id: words.guid(32),
+		from: Math.random() < 0.5? 'aravind': 'harish',
+		to: Math.random() < 0.5? 'scrollback': 'nodejs',
+		type: 'text',
+		time: new Date().getTime() - n*2000 - Math.floor(Math.random()*2000),
+		text: words.paragraph(1)
 	});
+	
+	messages.put(m, cb);
 }
 
 var start, end;
 
 store.connect('./testdb', function() {
 	var c = parseInt(process.argv[3]) || 1, i,
-		l = parseInt(process.argv[4]) || 1000;
+		l = parseInt(process.argv[4]) || 1000,
+		b;
 	
 	console.log(process.argv[2], c, 'threads of', l);
 	
-	if(process.argv[2] == 'put') {
-		start = new Date();
-		for(i=0; i<c; i++) {
-			putMessage(l, function() {
-				end = new Date();
-				console.log('put', l, 'in', end.getTime() - start.getTime());
-			});
-		}
-	} else if(process.argv[2] == 'get') {
-		start = new Date();
-		for(i=0; i<c; i++) messages.get({by: 'totime', start: ['',  0], limit: l}, function(err, res) {
+	function put() {
+		var t = perf("put started", b);
+		putMessage(l, function() {
+			end = new Date();
+			perf("put completed", t);
+		});
+	}
+	
+	function get() {
+		var t = perf("get started", b);
+		messages.get({by: 'totime', start: ['a', 0], limit: l}, function(err, res) {
 			var end = new Date();
 			if(err) throw err;
-			console.log('got', res.length, 'in', end.getTime() - start.getTime());
+			perf("get completed", t);
 		});
-	} else {
-		console.log("Usage: node test {put|get} [<concurrent_requests>] [<messages_per_request>]");
 	}
+	
+	putMessage(1, function() {
+		if(process.argv[2] == 'put') {
+			b = perf("starting puts");
+			for(i=0; i<c; i++) process.nextTick(put);
+		} else if(process.argv[2] == 'get') {
+			b = perf("starting gets");
+			for(i=0; i<c; i++) process.nextTick(get);
+		} else {
+			console.log("Usage: node bench {put|get} [<concurrent_requests>] [<messages_per_request>]");
+		}
+	});
 });
 
 //
