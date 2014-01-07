@@ -7,7 +7,7 @@ var store = require("../index.js"),
 
 Array.prototype.inspect = function(depth) {
 	var str = '[', i;
-	for(i=0; i<this.length && str.length < 72; i++) {
+	for(i=0; i<this.length && str.length < 144; i++) {
 		str += util.inspect(this[i], {colors: true,depth: depth-1}) + (i<this.length-1? ', ': '');
 	}
 	
@@ -39,7 +39,15 @@ var test = (function() {
 	};
 }());
 
-var rooms = store('rooms');
+var rooms = store('rooms', {
+	indexes: {
+		identity: function(room, emit) {
+			if(room.identities) room.identities.forEach(function(ident) {
+				emit.apply(null, ident.split(':'));
+			});
+		}
+	}
+});
 var users = store('users');
 
 var messages = store('messages', {
@@ -63,7 +71,10 @@ test('connect', function (d) {
 });
 
 test('putRooms', function (d) {
-	rooms.put([{id: 'scrollback'}, {id: 'nodejs'}], d);
+	rooms.put([
+		{id: 'scrollback', identities: ['irc:irc.rizon.net/scrollback']},
+		{id: 'nodejs', identities: ['irc:irc.freenode.net/nodejs']}
+	], d);
 });
 
 test('putUsers', function(d) {
@@ -144,6 +155,6 @@ test('delete', function(d) {
 	rooms.del('scrollback', d);
 });
 
-test('getRooms2', function(d) {
-	rooms.get(d);
+test('getRoomKeys', function(d) {
+	rooms.get({by: 'identity', eq: 'irc', keys: true}, d);
 });

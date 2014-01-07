@@ -155,35 +155,24 @@ var objectlevel = function(type, opt) {
 		var batch = [], relc;
 		
 		if(typeof rel === 'function') {
-			cb = rel; rel=null; to='null';
-		}
-		if(typeof to === 'function') {
+			cb = rel; rel=null; to=null;
+		} else if(typeof to === 'function') {
 			cb = to; to = null;
 		}
-		
 		cb = cb || noop;
 		
-		if(rel) {
-			addrel(rel, reldone);
-		} else {
+		if(!rel) {
 			relc = 0;
-			for(rel in opt.links) {
-				addrel(rel, reldone);
-			}
-		}
-
-		function reldone() {
-			if(--relc > 0) return;
-			exec();
-		}
+			for(rel in opt.links) addrel(rel);
+		} else addrel(rel);
 		
-		function addrel(rel, done) {
+		function addrel(rel) {
 			relc++;
 			if(!opt.links[rel]) return cb(Error("ERR_LINK_BAD_REL " + rel));
 
 			if(to) {
 				add(from, rel, to);
-				process.nextTick(done);
+				process.nextTick(exec);
 			} else {
 				if(opt.links[rel].indexOf(hdrs) == -1) return cb();
 				
@@ -193,13 +182,12 @@ var objectlevel = function(type, opt) {
 					keys: true, values: false
 				}).on('data', function(key) {
 					add(from, rel, key.split(flds).pop());
-				}).on('close', done);
+				}).on('close', exec);
 			}
 		}
 		
 		function add(from, rel, to) {
 			batch.push({type: 'del', key: type + hdrs + rel + flds + to + flds + from, });
-			
 			if(opt.links[rel].indexOf(hdrs) != -1) {
 				batch.push({ type: 'del', key: opt.links[rel] + flds + from + flds + to });
 			}
@@ -210,6 +198,7 @@ var objectlevel = function(type, opt) {
 		}
 		
 		function exec() {
+			if(--relc > 0) return;
 			db.batch(batch, function(err) {
 				if(err) return cb(Error("ERR_UNLINK_BATCH " + err.message));
 				cb();
@@ -250,7 +239,7 @@ var objectlevel = function(type, opt) {
 			}
 			
 			key = type + (q.by? hdrs + q.by: '');
-			q.limit  = (!q.limit || q.limit > 1024)? 1024: q.limit;
+			q.limit  = (!q.key && (!q.limit || q.limit > 1024))? 1024: q.limit;
 			
 			if(q.eq) q.start = q.end = q.eq;
 			if(q.start && !(q.start instanceof Array)) q.start = [q.start];
@@ -259,17 +248,17 @@ var objectlevel = function(type, opt) {
 			q.start = key + (q.start? indexVal(q.start): '') + flds;
 			q.end = key + (q.end? indexVal(q.end): '') + flds + '\uffff';
 			
-			q.keys = false; q.values = true;
+			if(!q.keys) { 
+				q.keys = false; q.values = true; 
+			} else q.values = false;
 			
 			getc++;
 			db.createReadStream(q).
-			on('data', function(range) {
-				res.push(range);
-			}).
+			on('data', function(data) { res.push(data); }).
 			on('error', function(e) { err = e; }).
 			on('close', results);
 			
-			if(opt.links[q.by] && q.eq) {
+			if(opt.links[q.by] && q.eq && !q.keys) {
 				getc++;
 				key = opt.links[q.by]+hdrs+type+hdrs+q.by + flds + q.eq + flds;
 				db.createReadStream({ start: key, end: key + '\uffff' }).
@@ -286,6 +275,13 @@ var objectlevel = function(type, opt) {
 			if(--getc > 0) return;
 			if(err) return cb(Error("ERR_GET_QUERY " + err.message + ' ' + JSON.stringify(q)));
 			if(!res.length) cb(null, []);
+			
+			if(q.keys) {
+				res.forEach(function(key) {
+					ret.push(key.split(flds).slice(1));
+				});
+				return cb(null, ret);
+			}
 			
 			res.forEach(function(range) {
 				fetc++;
@@ -322,18 +318,18 @@ var objectlevel = function(type, opt) {
 
 	api.del = function(id, cb) {
 		cb = cb || noop;
-		var batch=[],
+		var batch = [],
 			pkey = type + flds + id;
 		
-		db.get(pkey, function(err, data) {
+		api.get(id, function(err, data) {
 			if(err && !err.notFound) return cb("ERR_DEL_GET " + err.message);
 			if(!data) return cb();
 			var key;
 			
-			batch.push({type:'del', key:pkey});
-			indexes(JSON.parse(data)).forEach(function (key) {
+			indexes(data).forEach(function (key) {
 				batch.push({type:'del', key:key});
 			});
+			
 			db.batch(batch, function(err) {
 				if(err) return cb(Error("ERR_DEL_BATCH " + err.message));
 				api.unlink(id, cb);
