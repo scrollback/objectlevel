@@ -12,32 +12,12 @@
 
 /* global require, console, module, process, Buffer */
 
-var level = require('level'),
-	fs = require('fs'), fd, fp, ws,
+var db, files,
 	encode = require('./encode.js'),
-	db, noop = function() {},
-	delim = '|';
-
-function putData(obj, cb) {
-	var json =  JSON.stringify(obj) + '\n',
-		buf = new Buffer(json),
-		len = buf.length,
-		range = {pos: fp, len: len};
-	ws.write(buf, cb);
-	fp += len;
-	return JSON.stringify(range);
-}
-
-function getData(range, cb) {
-	range = JSON.parse(range);
-	var buf = new Buffer(range.len), obj;
-	fs.read(fd, buf, 0, range.len, range.pos, function(err, n) {
-		if(err) return cb(err);
-		try { obj = JSON.parse(buf.toString()); 
-		} catch(e) { return cb(e); }
-		cb(null, obj);
-	});
-}
+	noop = function() {},
+	flds = '|', // Must never occur in id's or index values
+	hdrs = ':'; // Must never occur in type, index or link 
+				// names and must be valid in filenames.
 
 var objectlevel = function(type, opt) {
 	var api = {}, i;
@@ -55,10 +35,10 @@ var objectlevel = function(type, opt) {
 		for(i=0; i<args.length; i++) {
 			arg = args[i];
 			if(typeof arg === 'object') arg = JSON.stringify(arg);
-			if(typeof arg === 'string' && arg.indexOf(delim) !== -1) {
+			if(typeof arg === 'string' && arg.indexOf(flds) !== -1) {
 				throw Error("ERR_INDEX_BAD_VALUE " + arg);
 			}
-			key += delim + (typeof arg === 'number'? encode(arg): arg);
+			key += flds + (typeof arg === 'number'? encode(arg): arg);
 		}
 		return key;
 	}
@@ -70,7 +50,7 @@ var objectlevel = function(type, opt) {
 	function indexes(obj) {
 		var ix, ino = [], done = false;
 		
-		ino.push(type + delim + obj.id);
+		ino.push(type + flds + obj.id);
 		
 		for(ix in opt.indexes) {
 			opt.indexes[ix](obj, push);
@@ -80,7 +60,7 @@ var objectlevel = function(type, opt) {
 				
 		function push() {
 			if(done) throw Error('ERR_INDEX_ASYNC_FUNCTION ' + type);
-			ino.push(type + ':' + ix + indexVal(arguments) + delim + obj.id);
+			ino.push(type + hdrs + ix + indexVal(arguments) + flds + obj.id);
 		}
 		
 		return ino;
@@ -97,7 +77,7 @@ var objectlevel = function(type, opt) {
 		var batch = [], putc = objs.length, error = null;
 		objs.forEach(function(obj) {
 			if(!obj.id) return cb(Error("ERR_PUT_BAD_OBJ " + JSON.stringify(obj)));
-			var range = putData(obj);
+			var range = files.put(obj, type);
 			
 			api.get(obj.id, function(err, old) {
 				var ino;
@@ -129,32 +109,33 @@ var objectlevel = function(type, opt) {
 		Creates a link between two objects.
 	*/
 	api.link = function(from, rel, to, data, cb) {
-		var fromkey = type + delim + from,
+		var fromkey = type + flds + from,
 			totype, tokey;
 		cb = cb || noop;
 		
 		if(!opt.links[rel]) return cb(Error("ERR_LINK_BAD_REL " + rel));
 		
-		totype = opt.links[rel].split(':')[0];
-		tokey = totype + delim + to;
+		totype = opt.links[rel].split(hdrs)[0];
+		tokey = totype + flds + to;
 
 		if(typeof data === 'function') cb = data;
 		if(typeof data !== 'object') data = null;
 		
 		db.get(fromkey, function(err, fromrange) {
 			db.get(tokey, function(error, torange) {
-				var range, batch=[];
+				var range, batch=[], ot=type+hdrs+rel, it=opt.links[rel];
 				if(err) return cb(Error("ERR_LINK_GET_OBJ " + err.message));
 				
-				batch.push({type:'put', key: type + ':' + rel + delim + to + delim + from, value:fromrange });
-				if(opt.links[rel].indexOf(':') != -1) {
-					batch.push({type:'put', key: opt.links[rel] + delim + from + delim + to, value:torange });
+				batch.push({type:'put', key: ot + flds + to + flds + from, value:fromrange });
+				if(opt.links[rel].indexOf(hdrs) != -1) {
+					batch.push({type:'put', key: it + flds + from + flds + to, value:torange });
 				}
 				
 				if(data) {
-					range = putData(data);
-					batch.push({type:'put', key: type+':'+rel+':'+opt.links[rel] + delim + from + delim + to, value:range});
-					batch.push({type:'put', key: opt.links[rel]+':'+type+':'+rel + delim + to + delim + from, value:range});
+					data[rel] = to; data[opt.links[rel].split(hdrs)[1]] = from;
+					range = files.put(data, (ot<it? ot+hdrs+it: it+hdrs+ot));
+					batch.push({type:'put', key: ot + hdrs + it + flds + from + flds + to, value:range});
+					batch.push({type:'put', key: it + hdrs + ot + flds + to + flds + from, value:range});
 				}
 				
 				db.batch(batch, function(err) {
@@ -206,28 +187,28 @@ var objectlevel = function(type, opt) {
 				add(from, rel, to);
 				process.nextTick(done);
 			} else {
-				if(opt.links[rel].indexOf(':') == -1) return cb();
+				if(opt.links[rel].indexOf(hdrs) == -1) return cb();
 				
 				db.createReadStream({ 
-					start: opt.links[rel] + delim + from + delim, 
-					end: opt.links[rel] + delim + from + delim + '\uffff', 
+					start: opt.links[rel] + flds + from + flds, 
+					end: opt.links[rel] + flds + from + flds + '\uffff', 
 					keys: true, values: false
 				}).on('data', function(key) {
-					add(from, rel, key.split(delim).pop());
+					add(from, rel, key.split(flds).pop());
 				}).on('close', done);
 			}
 		}
 		
 		function add(from, rel, to) {
-			batch.push({type: 'del', key: type + ':' + rel + delim + to + delim + from, });
+			batch.push({type: 'del', key: type + hdrs + rel + flds + to + flds + from, });
 			
-			if(opt.links[rel].indexOf(':') != -1) {
-				batch.push({ type: 'del', key: opt.links[rel] + delim + from + delim + to });
+			if(opt.links[rel].indexOf(hdrs) != -1) {
+				batch.push({ type: 'del', key: opt.links[rel] + flds + from + flds + to });
 			}
 			
 			/* Delete the link data */			
-			batch.push({type:'del', key: type+':'+rel+':'+opt.links[rel] + delim + from + delim + to});
-			batch.push({type:'del', key: opt.links[rel]+':'+type+':'+rel + delim + to + delim + from});
+			batch.push({type:'del', key: type+hdrs+rel+hdrs+opt.links[rel] + flds + from + flds + to});
+			batch.push({type:'del', key: opt.links[rel]+hdrs+type+hdrs+rel + flds + to + flds + from});
 		}
 		
 		function exec() {
@@ -256,11 +237,11 @@ var objectlevel = function(type, opt) {
 		} 
 		
 		if(typeof q !== 'object') {
-			db.get(type + delim + q, function(err, range) {
+			db.get(type + flds + q, function(err, range) {
 				if(err && !err.notFound) return cb(Error("ERR_GET_ID " + err.message + ' ' + q));
 				if(!range) return cb(null, undefined);
 				
-				getData(range, function(err, data) {
+				files.get(range, type, function(err, data) {
 					if(err) return cb(Error("ERR_GET_FILE_READ " + err.message + ' ' + range));
 					cb(null, data);
 				});
@@ -270,15 +251,15 @@ var objectlevel = function(type, opt) {
 				cb(Error("ERR_GET_BAD_INDEX " + q.by));
 			}
 			
-			key = type + (q.by? ':' + q.by: '');
+			key = type + (q.by? hdrs + q.by: '');
 			q.limit  = (!q.limit || q.limit > 1024)? 1024: q.limit;
 			
 			if(q.eq) q.start = q.end = q.eq;
 			if(q.start && !(q.start instanceof Array)) q.start = [q.start];
 			if(q.end && !(q.end instanceof Array)) q.end = [q.end];
 			
-			q.start = key + (q.start? indexVal(q.start): '') + delim;
-			q.end = key + (q.end? indexVal(q.end): '') + delim + '\uffff';
+			q.start = key + (q.start? indexVal(q.start): '') + flds;
+			q.end = key + (q.end? indexVal(q.end): '') + flds + '\uffff';
 			
 			q.keys = false; q.values = true;
 			
@@ -292,10 +273,10 @@ var objectlevel = function(type, opt) {
 			
 			if(opt.links[q.by] && q.eq) {
 				getc++;
-				key = opt.links[q.by]+':'+type+':'+q.by + delim + q.eq + delim;
+				key = opt.links[q.by]+hdrs+type+hdrs+q.by + flds + q.eq + flds;
 				db.createReadStream({ start: key, end: key + '\uffff' }).
 				on('data', function(data) {
-					rel[data.key.split(delim).pop()] = data.value;
+					rel[data.key.split(flds).pop()] = data.value;
 				}).
 				on('error', function(e) { err = e; }).
 				on('close', results);
@@ -303,30 +284,31 @@ var objectlevel = function(type, opt) {
 		}
 		
 		function results() {
-			var rs={}, ret = [], fetc=0, i;
+			var rs={}, ret = [], fetc=0, i, ot=type+hdrs+q.by, it=opt.links[q.by];
 			if(--getc > 0) return;
 			if(err) return cb(Error("ERR_GET_QUERY " + err.message + ' ' + JSON.stringify(q)));
 			if(!res.length) cb(null, []);
 						
 			res.forEach(function(range) {
 				fetc++;
-				getData(range, function(err, obj) {
+				files.get(range, type, function(err, obj) {
 					if(err) return cb(err);
 					rs[obj.id] = obj;
 					done();
 				});
 			});
 			
-			/* jshint -W083 */
-			for(i in rel) (function(i){
+			function fetchrel(i) {
 				fetc++;
-				getData(rel[i], function(err, obj) {
+				files.get(rel[i], (ot<it? ot+hdrs+it: it+hdrs+ot), function(err, obj) {
 					if(err) return cb(err);
+					delete obj[q.by]; delete obj[opt.links[q.by].split(hdrs)[1]];
 					rel[i] = obj;
 					done();
 				});
-			}(i));
-			/* jshint +W083 */
+			}
+			for(i in rel) fetchrel(i);
+			
 			
 			function done() {
 				var i, j;
@@ -343,7 +325,7 @@ var objectlevel = function(type, opt) {
 	api.del = function(id, cb) {
 		cb = cb || noop;
 		var batch=[],
-			pkey = type + delim + id;
+			pkey = type + flds + id;
 		
 		db.get(pkey, function(err, data) {
 			if(err && !err.notFound) return cb("ERR_DEL_GET " + err.message);
@@ -364,26 +346,17 @@ var objectlevel = function(type, opt) {
 	return api;
 };
 
-objectlevel.connect = function (path, cb) {
-	db = level(path);
-	ws = fs.createWriteStream(path + '/data', {flags: 'a+'}).
-	on('error', function(err) { return cb(err); }).
-	on('open', function(f) {
-		fd = f;
-		fs.fstat(f, function(err, stats) {
-			if(err) return cb(err);
-			fp = stats.size;
-			cb();
-		});
-	});
+objectlevel.connect = function (p, cb) {
+	files = require('./files.js')(p);
+	db = require('level')(p, cb);
 };
 
 objectlevel.defineLink = function (link) {
 	var rels = Object.keys(link);
-	if(rels.length !== 2) throw Error("ERR_BD_LINK");
+	if(rels.length !== 2 || rels[0] == rels[1]) throw Error("ERR_BD_LINK");
 	try {
-		link[rels[0]].opt.links[rels[1]] = link[rels[1]].type + ':' + rels[0];
-		link[rels[1]].opt.links[rels[0]] = link[rels[0]].type + ':' + rels[1];
+		link[rels[0]].opt.links[rels[1]] = link[rels[1]].type + hdrs + rels[0];
+		link[rels[1]].opt.links[rels[0]] = link[rels[0]].type + hdrs + rels[1];
 	} catch(e) {
 		throw Error("ERR_BAD_LINK " + e.message);
 	}
