@@ -65,7 +65,7 @@ Values passed to emit are joined to form a *key* that can be used to find this o
 **Important**: Index functions must be synchronous, i.e. all calls to emit must happen before the function returns. They should also be consistent, i.e. multiple calls with identical objects must emit the same values.
 
 
-### Adding data ###
+### Adding or updating data ###
 
 ```javascript
 messages.put({id: 'msg01', to: ['alice'], time: 10});
