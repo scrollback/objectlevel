@@ -83,13 +83,14 @@ messages.get('msg01', function(err, message /* a single message object */) {
 });
 ```
 
-#### 2. Getting a specific message given the recipient and time is also easy; Here, eq means the index value *equals* the provided array of components.
+#### 2. Getting a specific message given the recipient and time is also easy
 
 ```javascript
 messages.get({by: 'recipientTime', eq: ['alice', 10]}, function(err, res /* an array */) {
 	...
 });
 ```
+Here, eq means the index value *equals* the provided array of components.
 
 #### 3. More realistically, you may want to search within a range of timestamps for messages sent to alice.
 
