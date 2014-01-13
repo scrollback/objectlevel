@@ -208,7 +208,7 @@ When you delete an object, all links to it are deleted automatically.
 ### Tools ###
 
 A separate objectlevel-tools project is planned, which will provide command-line utilities for:
-1. Exploring an objectlevel data directory
-2. Setting up continuous, automatic remote backups
-3. Restoring an index from a data file (if LevelDB files were not backed up, or if index definitions were changed)
-4. Setting up master-slave replication
+ 1. Exploring an objectlevel data directory
+ 2. Setting up continuous, automatic remote backups
+ 3. Restoring an index from a data file (if LevelDB files were not backed up, or if index definitions were changed)
+ 4. Setting up master-slave replication
