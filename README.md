@@ -1,7 +1,7 @@
 ObjectLevel
 ===========
 
-Generic object storage for Node.js using flat files and [LevelDB](https://code.google.com/p/leveldb/).
+Indexed, relational JSON store for Node.js using flat files and [LevelDB](https://code.google.com/p/leveldb/).
 
 ## Overview ##
 
