@@ -20,7 +20,6 @@ You need a dedicated lightweight data store that's part of your application, and
 ObjectLevel also gives you
 - Crash safety (from database corruption, not data loss: a few seconds’ data might be lost in case of an OS crash)
 - Live backups without locking
-- 
 
 
 ## When not to use ##
@@ -30,7 +29,7 @@ Don’t use ObjectLevel (yet) if you have
 - multiple processes that need to access the same data simultaneously
 - large amounts of data (tens of GBs) of one object type (rollover of flat files not implemented yet) 
 
-Additionally, if you need replication or sharding, it must be implemented in your application.
+Additionally, if you need replication or sharding, you have to implement it yourself in your application.
 
 
 ## Installation ##
@@ -76,7 +75,7 @@ messages.put({id: 'msg01', to: ['alice'], time: 10});
 
 ### Querying ###
 
-#### 1. Get a message with its ID is straightforward.
+#### 1. Getting a message with its ID is straightforward.
 
 ```javascript
 messages.get('msg01', function(err, message /* a single message object */) {
@@ -92,7 +91,7 @@ messages.get({by: 'recipientTime', eq: ['alice', 10]}, function(err, res /* an a
 });
 ```
 
-#### 3. More realistically, you may be searching within a range of timestamps for messages sent to alice.
+#### 3. More realistically, you may want to search within a range of timestamps for messages sent to alice.
 
 ```javascript
 messages.get({by: 'recipientTime', start: ['alice', 0], end: ['alice', 20]}, callback);
@@ -100,7 +99,7 @@ messages.get({by: 'recipientTime', start: ['alice', 0], end: ['alice', 20]}, cal
 
 Results will be sorted by time - ObjectLevel, results are sorted by the index used. When the index has multiple components, the first one is the most significant. In other words, the recipientTime index sorts first by recipient, then by time for keys which have the same recipient.
 
-#### 4. Finally, to get all messages sent to alice (irrespective of timestamp)
+#### 4. Get all messages sent to alice (irrespective of timestamp)
 
 
 ```javascript
@@ -111,6 +110,14 @@ Less significant components can be omitted. The above query can also be written 
 
 ```javascript
 messages.get({by: 'recipientTime', eq: 'alice'}, callback);
+```
+
+#### 5. All messages in a time range, irrespective of recipient
+
+This isn’t possible without defining another index – a later (less significant) component of the key can't be specified if you skip an earlier (more significant) one. The solution here is to add another index the indexes definition of the message type.
+
+```javascript
+time: function(msg, emit) { emit(msg.time); }
 ```
 
 #### Query parameters
@@ -168,7 +175,7 @@ Links create a pair of indexes that can be queried like other indexes. For examp
 messages.get({by: 'hasLabel', eq: 'funny'}, callback);
 ```
 
-The result will be an array of messages, with an additional `appliedOn` property.
+The result will be an array of messages, with an additional `appliedOn` property. Properties defined in the link data will override those with the same names in the object.
 
 ### Unlinking objects ###
 
@@ -194,12 +201,14 @@ When you delete an object, all links to it are deleted automatically.
 - Rollover of data files to avoid unmanageably large files
 - Periodic compaction of data files
 - Indexes on link data
-- More configuration options
+- More powerful queries
+  - key filter function
+  - reduce function
 
 ### Tools ###
 
 A separate objectlevel-tools project is planned, which will provide command-line utilities for:
 1. Exploring an objectlevel data directory
 2. Setting up continuous, automatic remote backups
-3. Restoring an index from a data file (if LevelDB files were not backed up)
+3. Restoring an index from a data file (if LevelDB files were not backed up, or if index definitions were changed)
 4. Setting up master-slave replication
