@@ -159,7 +159,6 @@ Links can be made from either side.
 ```javascript
 messages.link('msg01', 'hasLabel', 'funny');
 labels.link('thoughtful', 'onMessage', 'msg10');
-
 ```
 
 Optionally, data can be added to the link. For example, the time at which a label was applied to a particular message can be stored.
