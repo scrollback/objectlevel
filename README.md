@@ -1,7 +1,7 @@
 ObjectLevel
 ===========
 
-Indexed, relational JSON store for Node.js using flat files and [LevelDB](https://code.google.com/p/leveldb/).
+Indexed, relational JSON store for Node.js using flat files and [LevelDB](https://code.google.com/p/leveldb/)
 
 ## Overview ##
 
@@ -45,16 +45,16 @@ In the examples below, we need to store `message` objects, where each message ha
 ```javascript
 var objectlevel = objectlevel("objectlevel");
 
-objectlevel.connect(__dirname + '/data'); // Path to directory
-
-var messages = objectlevel('messages', {
-	indexes: {
-		recipientTime: function (msg, emit) {
-			msg.to.forEach(function(recipient) {
-				emit(recipient, msg.time);
-			});
+objectlevel.connect(__dirname + '/data' /* Path to directory */, function() {
+	var messages = objectlevel('messages', {
+		indexes: {
+			recipientTime: function (msg, emit) {
+				msg.to.forEach(function(recipient) {
+					emit(recipient, msg.time);
+				});
+			}
 		}
-	}
+	});
 });
 ```
 
