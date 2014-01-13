@@ -27,7 +27,7 @@ ObjectLevel also gives you
 Don’t use ObjectLevel (yet) if you have
 - update-heavy workloads (compaction of flat files is not implemented yet)
 - multiple processes that need to access the same data simultaneously
-- large amounts of data (tens of GBs) of one object type (rollover of flat files not implemented yet) 
+- large amounts of data (hundreds of GBs) of one object type (rollover of flat files not implemented yet)
 
 Additionally, if you need replication or sharding, you have to implement it yourself in your application.
 
