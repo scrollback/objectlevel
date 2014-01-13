@@ -40,9 +40,7 @@ Additionally, if you need replication or sharding, you have to implement it your
 
 In the examples below, we need to store `message` objects, where each message has properties `id`, `to`, (an array of recipients) and `time`. Later, we need to retrieve messages given a recipient, sorted by time.
 
-### Defining an index ###
-
-Let's define an index `totime` on `message` objects.
+### Defining an index function ###
 
 ```javascript
 var objectlevel = objectlevel("objectlevel");
