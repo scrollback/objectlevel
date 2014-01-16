@@ -3,41 +3,7 @@
 var store = require("../index.js"),
 	assert = require("assert"),
 	words = require("./words.js"),
-	util = require("util");
-
-Array.prototype.inspect = function(depth) {
-	var str = '[', i;
-	for(i=0; i<this.length && str.length < 144; i++) {
-		str += util.inspect(this[i], {colors: true,depth: depth-1}) + (i<this.length-1? ', ': '');
-	}
-	
-	return str + (this.length>i? '+' + (this.length-i): '') + ']';
-};
-
-var test = (function() {
-	var tests = [], labels=[], i=0, running = false;
-	
-	function next(err, data) {
-		console.log(
-			labels[i] + Array(20-labels[i].length).join(' ') +
-			(arguments.length? util.inspect(
-				(arguments.length > 2? arguments: err || data),
-				{depth: 2, colors: true}
-			).replace(/\n\s*/g, ' '): 'Ok')
-		);
-		i++;
-		if(tests[i]) tests[i](next);
-		else running = false;
-	}
-	
-	return function (label, test) {
-		labels.push(label); tests.push(test);
-		if(!running) {
-			running = true;
-			test(next);
-		}
-	};
-}());
+	run = require("./runner.js");
 
 var rooms = store('rooms', {
 	indexes: {
@@ -66,22 +32,38 @@ var messages = store('messages', {
 store.defineLink({occupant: users, occupied: rooms});
 store.defineLink({follower: users, followed: rooms});
 
-test('connect', function (d) {
+run('connect', function (d) {
 	store.connect('./testdb2', d);
 });
 
-test('putRooms', function (d) {
+run('putRooms', function (d) {
 	rooms.put([
 		{id: 'scrollback', identities: ['irc:irc.rizon.net/scrollback']},
 		{id: 'nodejs', identities: ['irc:irc.freenode.net/nodejs']}
 	], d);
 });
 
-test('putUsers', function(d) {
+run('putUsers', function(d) {
 	users.put([{id: 'aravind'}, {id: 'harish'}], d);
 });
 
-test('putMessages', function(d) {
+run('getUsers', function(d) {
+	users.get(d);
+});
+
+run('overWriteUser', function(d) {
+	users.put({id: 'aravind'}, d);
+});
+
+run('getUsers', function(d) {
+	users.get(d);
+});
+
+run('getRooms', function(d) {
+	rooms.get(d);
+});
+
+run('putMessages', function(d) {
 	var m = [], n;
 	for(n=20; n>0; n--) m.push({
 		id: words.guid(32),
@@ -95,66 +77,78 @@ test('putMessages', function(d) {
 	messages.put(m, d);
 });
 
-test('putRoom', function(d) {
+run('putRoom', function(d) {
 	rooms.put({id: 'bitcoin'}, d);
 });
 
-test('getOneRoom', function(d) {
+run('getOneRoom', function(d) {
 	rooms.get('nodejs', d);
 });
 
-test('getBadRoom', function(d) {
+run('getBadRoom', function(d) {
 	rooms.get('badroom', d);
 });
 
-test('getRooms', function(d) {
+run('getRooms', function(d) {
 	rooms.get(d);
 });
 
-test('getAllMessages', function(d) {
+run('getAllMessages', function(d) {
 	messages.get(d);
 });
 
-test('getSomeMessages', function(d) {
+run('getSomeMessages', function(d) {
 	messages.get({by:'totime', start: ['scrollback'], end: ['scrollback']}, d);
 });
 
-test('addLink1', function(d) {
+run('addLink1', function(d) {
 	rooms.link('scrollback', 'occupant', 'aravind', {entered: 343}, d);
 });
 
-test('addLink2', function(d) {
+run('addLink2', function(d) {
 	rooms.link('bitcoin', 'occupant', 'aravind', d);
 });
 
-test('addLink3', function(d) {
+run('addLink3', function(d) {
 	users.link('harish', 'occupied', 'scrollback', {entered: 123}, d);
 });
 
-test('getLinkForward', function(d) {
+run('getLinkForward', function(d) {
 	rooms.get({by: 'occupant', eq: 'aravind'}, d);
 });
 
-test('getLinkReverse', function(d) {
+run('getLinkReverse', function(d) {
 	users.get({by: 'occupied', eq: 'scrollback'}, d);
 });
 
-test('goodUnlink', function(d) {
+run('overWriteLink', function(d) {
+	rooms.link('scrollback', 'occupant', 'aravind', {entered: 666}, d);
+});
+
+run('getLinkForward', function(d) {
+	rooms.get({by: 'occupant', eq: 'aravind'}, d);
+});
+
+run('getLinkReverse', function(d) {
+	users.get({by: 'occupied', eq: 'scrollback'}, d);
+});
+
+run('goodUnlink', function(d) {
 	users.unlink('aravind', 'occupied', 'bitcoin', d);
 });
 
-test('badUnlink', function(d) {
+run('badUnlink', function(d) {
 	users.unlink('aravind', 'occupied', 'asdf', d);
 });
 
-test('getLinkEmpty', function(d) {
+run('getLinkEmpty', function(d) {
 	users.get({by: 'occupied', eq: 'bitcoin'}, d);
 });
 
-test('delete', function(d) {
+run('delete', function(d) {
 	rooms.del('scrollback', d);
 });
 
-test('getRoomKeys', function(d) {
+run('getRoomKeys', function(d) {
 	rooms.get({by: 'identity', eq: 'irc', keys: true}, d);
 });

@@ -1,14 +1,14 @@
 {
   "name": "objectlevel",
-  "version": "0.1.0",
-  "description": "An indexed object store on Node.js and LevelDB",
+  "version": "0.1.1",
+  "description": "Generic object storage with indexes and relations using flat files and LevelDB",
   "main": "index.js",
   "scripts": {
     "test": "node test/test.js"
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/scrollback/redindex"
+    "url": "git://github.com/scrollback/objectlevel"
   },
   "dependencies": {
     "level": "x"

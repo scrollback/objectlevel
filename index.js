@@ -87,7 +87,7 @@ var objectlevel = function(type, opt) {
 				});
 				
 				if(old) indexes(old).forEach(function(key) {
-					if(typeof ino[key] === 'undefined') batch.push({type:'del', key:key});
+					if(ino.indexOf(key) == -1) batch.push({type:'del', key:key});
 				});
 				
 				done();
@@ -96,6 +96,7 @@ var objectlevel = function(type, opt) {
 		
 		function done() {
 			if(--putc > 0) return;
+			
 			db.batch(batch, function(err) {
 				if(err) return cb(Error("ERR_PUT_BATCH " + err.message));
 				cb();
@@ -120,9 +121,12 @@ var objectlevel = function(type, opt) {
 		if(typeof data !== 'object') data = null;
 		
 		db.get(fromkey, function(err, fromrange) {
-			db.get(tokey, function(error, torange) {
+			if(err) return cb(Error("ERR_LINK_GET_OBJ " + err.message + fromkey));
+			db.get(tokey, function(err, torange) {
 				var range, batch=[], ot=type+hdrs+rel, it=opt.links[rel];
-				if(err) return cb(Error("ERR_LINK_GET_OBJ " + err.message));
+				if(err) return cb(Error("ERR_LINK_GET_OBJ " + err.message + tokey));
+				
+				console.log(fromkey, fromrange, tokey, torange);
 				
 				batch.push({type:'put', key: ot + flds + to + flds + from, value:fromrange });
 				if(opt.links[rel].indexOf(hdrs) != -1) {

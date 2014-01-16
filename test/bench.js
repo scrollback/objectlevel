@@ -1,12 +1,7 @@
 /* global require, console, process */
 
-//require('nodetime').profile({
-//    accountKey: 'd7140b8dea6f067724cc43b0b4a508c447ce73c7', 
-//    appName: 'Node.js Application'
-//});
-
 var store = require("../index.js"),
-	assert = require("assert"),
+	run = require("./runner.js"),
 	words = require("./words.js"),
 	perf = require("./perf.js");
 
@@ -26,7 +21,7 @@ var messages = store('messages', {
 
 function putMessage(n, cb) {
 	var m = [];
-	for(n=20; n>0; n--) m.push({
+	for(; n>0; n--) m.push({
 		id: words.guid(32),
 		from: Math.random() < 0.5? 'aravind': 'harish',
 		to: Math.random() < 0.5? 'scrollback': 'nodejs',
@@ -35,7 +30,11 @@ function putMessage(n, cb) {
 		text: words.paragraph(1)
 	});
 	
-	messages.put(m, cb);
+	var t = perf("put started", b);
+	messages.put(m, function() {
+		perf("put completed", t);
+		cb();
+	});
 }
 
 var start, end;
@@ -48,10 +47,9 @@ store.connect('./testdb', function() {
 	console.log(process.argv[2], c, 'threads of', l);
 	
 	function put() {
-		var t = perf("put started", b);
 		putMessage(l, function() {
 			end = new Date();
-			perf("put completed", t);
+			
 		});
 	}
 	

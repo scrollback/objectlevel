@@ -5,7 +5,8 @@ var fs = require('fs'), files={};
 // var perf = require('./test/perf.js');
 
 var encode = JSON.stringify,
-	decode = JSON.parse;
+	decode = JSON.parse,
+	noop = function(){};
 
 module.exports = function(path) {
 	function put(obj, file, cb) {
@@ -13,7 +14,7 @@ module.exports = function(path) {
 			buf = new Buffer(json),
 			len = buf.length, range;
 			
-		queue('put', buf, file, cb);
+		queue('put', buf, file, cb || noop);
 		file = files[file];
 		range = {pos: file.fp, len: len-1};
 		file.fp += len;
@@ -21,6 +22,7 @@ module.exports = function(path) {
 	}
 	
 	function get(range, file, cb) {
+		cb = cb || noop;
 		range = decode(range);
 		queue('get', range, file, function(err, buf) {
 			var obj;
