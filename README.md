@@ -9,6 +9,14 @@ Indexed, relational JSON store for Node.js using flat files and [LevelDB](https:
 - Custom indexing logic can be written in JS using an API similar to CouchDB views.
 - Relations (links) between objects can be defined and used for querying efficiently.
 
+## What's new in v0.1.2
+- Support for opening multiple databases.
+- Fixed a bug where numeric keys components were not returned
+- All data is now completely recoverable from flat files only
+- Improved space usage significantly, both in leveldb and in the flat files
+- Pushing objects without IDs will no longer throw errors; guids will be used.
+- Refactored the codebase into small, single-responsibility modules
+
 ## When to use ##
 
 You need a dedicated lightweight data store that's part of your application, and you have
@@ -40,21 +48,20 @@ Additionally, if you need replication or sharding, you have to implement it your
 
 In the examples below, we need to store `message` objects, where each message has properties `id`, `to`, (an array of recipients) and `time`. Later, we need to retrieve messages given a recipient, sorted by time.
 
-### Defining an index function ###
+### Defining an object type ###
 
 ```javascript
 var objectlevel = objectlevel("objectlevel");
 
-objectlevel.connect(__dirname + '/data' /* Path to directory */, function() {
-	var messages = objectlevel('messages', {
-		indexes: {
-			recipientTime: function (msg, emit) {
-				msg.to.forEach(function(recipient) {
-					emit(recipient, msg.time);
-				});
-			}
+db = new objectlevel(__dirname + '/data');
+var messages = db.defineType('messages', {
+	indexes: {
+		recipientTime: function (msg, emit) {
+			msg.to.forEach(function(recipient) {
+				emit(recipient, msg.time);
+			});
 		}
-	});
+	}
 });
 ```
 
@@ -144,10 +151,10 @@ Let's say messages are organized using labels; Users can label objects with prop
 ```javascript
 
 /* First, define the two collections */
-var messages = objectlevel('messages', ...),
-    labels = objectlevel('labels', ...);
+var messages = db('messages', ...),
+    labels = db('labels', ...);
 
-objectlevel.defineLink({hasLabel: labels, onMessage: messages});
+db.defineLink({hasLabel: labels, onMessage: messages});
 ```
 Here, messages#hasLabel and labels#onMessage are the names of the endpoints of the link; 
 
@@ -196,6 +203,7 @@ When you delete an object, all links to it are deleted automatically.
 
 ## Further development ##
 
+- Combining reads to improve performance
 - Rollover of data files to avoid unmanageably large files
 - Periodic compaction of data files
 - Indexes on link data

@@ -2,7 +2,7 @@
 
 var store = require("../index.js"),
 	run = require("./runner.js"),
-	words = require("./words.js"),
+	words = require("../lib/words.js"),
 	perf = require("./perf.js");
 
 var messages = store('messages', {

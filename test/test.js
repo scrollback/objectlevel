@@ -1,11 +1,12 @@
 /* global module, require, console */
 
-var store = require("../index.js"),
+var objectlevel = require("../index.js"),
+	store = new objectlevel('./testdb'),
 	assert = require("assert"),
-	words = require("./words.js"),
+	words = require("../lib/words.js"),
 	run = require("./runner.js");
 
-var rooms = store('rooms', {
+var rooms = store.defineType('rooms', {
 	indexes: {
 		identity: function(room, emit) {
 			if(room.identities) room.identities.forEach(function(ident) {
@@ -14,9 +15,8 @@ var rooms = store('rooms', {
 		}
 	}
 });
-var users = store('users');
-
-var messages = store('messages', {
+var users = store.defineType('users');
+var messages = store.defineType('messages', {
 	indexes: {
 		totime: function (msg, emit) {
 			emit(msg.to, -msg.time);
@@ -29,12 +29,8 @@ var messages = store('messages', {
 	}
 });
 
-store.defineLink({occupant: users, occupied: rooms});
-store.defineLink({follower: users, followed: rooms});
-
-run('connect', function (d) {
-	store.connect('./testdb2', d);
-});
+store.defineLink({hasOccupant: users, occupantOf: rooms});
+store.defineLink({hasMember: users, memberOf: rooms});
 
 run('putRooms', function (d) {
 	rooms.put([
@@ -66,7 +62,6 @@ run('getRooms', function(d) {
 run('putMessages', function(d) {
 	var m = [], n;
 	for(n=20; n>0; n--) m.push({
-		id: words.guid(32),
 		from: Math.random() < 0.5? 'aravind': 'harish',
 		to: Math.random() < 0.5? 'scrollback': 'nodejs',
 		type: 'text',
@@ -98,57 +93,68 @@ run('getAllMessages', function(d) {
 });
 
 run('getSomeMessages', function(d) {
-	messages.get({by:'totime', start: ['scrollback'], end: ['scrollback']}, d);
+	
+	var start = - new Date().getTime() + 5*2000, end = - new Date().getTime() + 15*2000
+	messages.get({
+		by:'totime', 
+		start: ['scrollback', start],
+		end: ['scrollback', end]
+	}, d);
 });
 
 run('addLink1', function(d) {
-	rooms.link('scrollback', 'occupant', 'aravind', {entered: 343}, d);
+	rooms.link('scrollback', 'hasOccupant', 'aravind', {entered: 343}, d);
 });
 
 run('addLink2', function(d) {
-	rooms.link('bitcoin', 'occupant', 'aravind', d);
+	rooms.link('bitcoin', 'hasOccupant', 'aravind', d);
 });
 
 run('addLink3', function(d) {
-	users.link('harish', 'occupied', 'scrollback', {entered: 123}, d);
+	users.link('harish', 'occupantOf', 'scrollback', {entered: 123}, d);
 });
 
 run('getLinkForward', function(d) {
-	rooms.get({by: 'occupant', eq: 'aravind'}, d);
+	rooms.get({by: 'hasOccupant', eq: 'aravind'}, d);
 });
 
 run('getLinkReverse', function(d) {
-	users.get({by: 'occupied', eq: 'scrollback'}, d);
+	users.get({by: 'occupantOf', eq: 'scrollback'}, d);
 });
 
 run('overWriteLink', function(d) {
-	rooms.link('scrollback', 'occupant', 'aravind', {entered: 666}, d);
+	rooms.link('scrollback', 'hasOccupant', 'aravind', {entered: 666}, d);
 });
 
 run('getLinkForward', function(d) {
-	rooms.get({by: 'occupant', eq: 'aravind'}, d);
+	rooms.get({by: 'hasOccupant', eq: 'aravind'}, d);
 });
 
 run('getLinkReverse', function(d) {
-	users.get({by: 'occupied', eq: 'scrollback'}, d);
+	users.get({by: 'occupantOf', eq: 'scrollback'}, d);
 });
 
 run('goodUnlink', function(d) {
-	users.unlink('aravind', 'occupied', 'bitcoin', d);
+	users.unlink('aravind', 'occupantOf', 'bitcoin', d);
 });
 
 run('badUnlink', function(d) {
-	users.unlink('aravind', 'occupied', 'asdf', d);
+	users.unlink('aravind', 'occupantOf', 'asdf', d);
 });
 
 run('getLinkEmpty', function(d) {
-	users.get({by: 'occupied', eq: 'bitcoin'}, d);
+	users.get({by: 'occupantOf', eq: 'bitcoin'}, d);
 });
 
 run('delete', function(d) {
-	rooms.del('scrollback', d);
+	rooms.delete('scrollback', d);
 });
 
 run('getRoomKeys', function(d) {
 	rooms.get({by: 'identity', eq: 'irc', keys: true}, d);
 });
+
+run('getMessageKeys', function(d) {
+	messages.get({by: 'totime', eq: 'scrollback', keys: true}, d);
+});
+
