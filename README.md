@@ -12,6 +12,7 @@ Indexed, relational JSON store for Node.js using flat files and [LevelDB](https:
 ### What's new
 #### v0.1.3
 - Indexes on link data.
+- Writes a metadata file tracking updates/deletes for use during compaction
 
 #### v0.1.2
 - Support for opening multiple databases.
