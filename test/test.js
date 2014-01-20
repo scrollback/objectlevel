@@ -30,7 +30,9 @@ var messages = store.defineType('messages', {
 });
 
 store.defineLink({hasOccupant: users, occupantOf: rooms});
-store.defineLink({hasMember: users, memberOf: rooms});
+store.defineLink({hasMember: users, memberOf: rooms}, {
+	role: function(data, emit) {emit(data.role || 'member');}
+});
 
 run('putRooms', function (d) {
 	rooms.put([
@@ -93,7 +95,6 @@ run('getAllMessages', function(d) {
 });
 
 run('getSomeMessages', function(d) {
-	
 	var start = - new Date().getTime() + 5*2000, end = - new Date().getTime() + 15*2000
 	messages.get({
 		by:'totime', 
@@ -107,19 +108,19 @@ run('addLink1', function(d) {
 });
 
 run('addLink2', function(d) {
-	rooms.link('bitcoin', 'hasOccupant', 'aravind', d);
+	rooms.link('bitcoin', 'hasMember', 'aravind', {role: 'owner'}, d);
 });
 
-run('addLink3', function(d) {
-	users.link('harish', 'occupantOf', 'scrollback', {entered: 123}, d);
+run('addLinkBack', function(d) {
+	users.link('harish', 'memberOf', 'bitcoin', {role: 'moderator'}, d);
 });
 
 run('getLinkForward', function(d) {
 	rooms.get({by: 'hasOccupant', eq: 'aravind'}, d);
 });
 
-run('getLinkReverse', function(d) {
-	users.get({by: 'occupantOf', eq: 'scrollback'}, d);
+run('getLinkRevIndex', function(d) {
+	users.get({by: 'memberOf', eq: ['bitcoin', 'role', 'owner']}, d);
 });
 
 run('overWriteLink', function(d) {
@@ -147,7 +148,7 @@ run('getLinkEmpty', function(d) {
 });
 
 run('delete', function(d) {
-	rooms.delete('scrollback', d);
+	rooms.del('scrollback', d);
 });
 
 run('getRoomKeys', function(d) {

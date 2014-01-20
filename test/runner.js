@@ -14,26 +14,27 @@ Array.prototype.inspect = function(depth) {
 module.exports = (function() {
 	var tests = [], labels=[], i=0, running = false;
 	
-	function next(err, data) {
-		if(err) return console.log(err);
-		console.log(
-			labels[i] + Array(20-labels[i].length).join(' ') +
-			(arguments.length? util.inspect(
-				data,
-				{depth: 2, colors: true}
-			).replace(/\n\s*/g, ' '): 'Ok')
-		);
-		
-		i++;
+	function run(i) {
+		running = true;
 		if(tests[i]) tests[i](next);
 		else running = false;
+		
+		function next(err, data) {
+			if(err) return console.log(err);
+			console.log(
+				labels[i] + Array(20-labels[i].length).join(' ') +
+				(arguments.length? util.inspect(
+					data,
+					{depth: 2, colors: true}
+				).replace(/\n\s*/g, ' '): 'Ok')
+			);
+			
+			run(i+1);
+		}
 	}
 	
 	return function (label, test) {
 		labels.push(label); tests.push(test);
-		if(!running) {
-			running = true;
-			test(next);
-		}
+		if(!running) run(tests.length-1);
 	};
 }());
