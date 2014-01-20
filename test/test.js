@@ -30,9 +30,9 @@ var messages = store.defineType('messages', {
 });
 
 store.defineLink({hasOccupant: users, occupantOf: rooms});
-store.defineLink({hasMember: users, memberOf: rooms}, {
+store.defineLink({hasMember: users, memberOf: rooms}, { indexes: {
 	role: function(data, emit) {emit(data.role || 'member');}
-});
+}});
 
 run('putRooms', function (d) {
 	rooms.put([

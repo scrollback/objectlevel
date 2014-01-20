@@ -9,7 +9,11 @@ Indexed, relational JSON store for Node.js using flat files and [LevelDB](https:
 - Custom indexing logic can be written in JS using an API similar to CouchDB views.
 - Relations (links) between objects can be defined and used for querying efficiently.
 
-## What's new in v0.1.2
+### What's new
+#### v0.1.3
+- Indexes on link data.
+
+#### v0.1.2
 - Support for opening multiple databases.
 - Fixed a bug where numeric keys components were not returned
 - All data is now completely recoverable from flat files only
@@ -154,9 +158,9 @@ Let's say messages are organized using labels; Users can label objects with prop
 var messages = db('messages', ...),
     labels = db('labels', ...);
 
-db.defineLink({hasLabel: labels, onMessage: messages});
+db.defineLink({hasLabel: labels, onMessage: messages}, { indexes: { ... } });
 ```
-Here, messages#hasLabel and labels#onMessage are the names of the endpoints of the link; 
+Here, messages#hasLabel and labels#onMessage are the names of the endpoints of the link; Indexes is a hashmap of index functions that take a link data object and emit keys.
 
 ### Linking objects ###
 
@@ -182,6 +186,21 @@ messages.get({by: 'hasLabel', eq: 'funny'}, callback);
 
 The result will be an array of messages, with an additional `appliedOn` property. Properties defined in the link data will override those with the same names in the object.
 
+To query using link data indexes, use:
+
+```javascript
+defineLink({hasLabel: labels, onMessage: messages}, { indexes: {
+	appliedOn: function(linkData, emit) { emit(linkData.appliedOn); }
+}});
+
+messages.get({
+	by: 'hasLabel',
+	start: ['funny', 'appliedOn', 1000], 
+	end: ['funny', 'appliedOn', '2000']
+}, callback);
+```
+
+
 ### Unlinking objects ###
 
 You can remove a specific link,
@@ -206,7 +225,6 @@ When you delete an object, all links to it are deleted automatically.
 - Combining reads to improve performance
 - Rollover of data files to avoid unmanageably large files
 - Periodic compaction of data files
-- Indexes on link data
 - More powerful queries
   - key filter function
   - reduce function
