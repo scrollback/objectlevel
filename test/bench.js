@@ -1,5 +1,3 @@
-/* global require, console, process */
-
 var store = require("../index.js"),
 	run = require("./runner.js"),
 	words = require("../lib/words.js"),

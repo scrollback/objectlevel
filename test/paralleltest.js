@@ -1,5 +1,3 @@
-/* global require */
-
 var parallel = require("../lib/parallel.js");
 
 

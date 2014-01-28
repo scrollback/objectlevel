@@ -1,5 +1,3 @@
-/* global require, module, console */
-
 var util = require("util");
 
 Array.prototype.inspect = function(depth) {
@@ -12,7 +10,7 @@ Array.prototype.inspect = function(depth) {
 };
 
 module.exports = (function() {
-	var tests = [], labels=[], i=0, running = false;
+	var tests = [], labels=[], running = false;
 	
 	function run(i) {
 		running = true;

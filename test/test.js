@@ -1,8 +1,5 @@
-/* global module, require, console */
-
 var objectlevel = require("../index.js"),
 	store = new objectlevel('./testdb'),
-	assert = require("assert"),
 	words = require("../lib/words.js"),
 	run = require("./runner.js");
 
@@ -95,7 +92,7 @@ run('getAllMessages', function(d) {
 });
 
 run('getSomeMessages', function(d) {
-	var start = - new Date().getTime() + 5*2000, end = - new Date().getTime() + 15*2000
+	var start = - new Date().getTime() + 5*2000, end = - new Date().getTime() + 15*2000;
 	messages.get({
 		by:'totime', 
 		start: ['scrollback', start],
