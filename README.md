@@ -10,6 +10,10 @@ Indexed, relational JSON store for Node.js using flat files and [LevelDB](https:
 - Relations (links) between objects can be defined and used for querying efficiently.
 
 ### What's new
+#### v0.1.4
+- Performance improvements
+- Fixes an issue in the `.unlink()` API introduced in v0.1.3
+
 #### v0.1.3
 - Indexes on link data.
 - Writes a metadata file tracking updates/deletes for use during compaction

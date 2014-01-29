@@ -117,7 +117,7 @@ run('getLinkForward', function(d) {
 });
 
 run('getLinkRevIndex', function(d) {
-	users.get({by: 'memberOf', eq: ['bitcoin', 'role', 'owner']}, d);
+	users.get({by: 'memberOf', eq: ['bitcoin', 'role', 'moderator']}, d);
 });
 
 run('overWriteLink', function(d) {
@@ -126,7 +126,7 @@ run('overWriteLink', function(d) {
 
 run('getLinkForward', function(d) {
 	rooms.get({by: 'hasOccupant', eq: 'aravind'}, d);
-});
+}); 
 
 run('getLinkReverse', function(d) {
 	users.get({by: 'occupantOf', eq: 'scrollback'}, d);
@@ -134,6 +134,14 @@ run('getLinkReverse', function(d) {
 
 run('goodUnlink', function(d) {
 	users.unlink('aravind', 'occupantOf', 'bitcoin', d);
+});
+
+run('verifyOtherLinks', function(d) {
+	rooms.get({by: 'hasOccupant', eq: 'aravind'}, d);
+});
+
+run('verifyOtherLinksBack', function(d) {
+	users.get({by: 'occupantOf', eq: 'scrollback'}, d);
 });
 
 run('badUnlink', function(d) {
