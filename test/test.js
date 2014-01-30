@@ -121,7 +121,7 @@ run('getLinkRevIndex', function(d) {
 });
 
 run('overWriteLink', function(d) {
-	rooms.link('scrollback', 'hasOccupant', 'aravind', {entered: 666}, d);
+	rooms.link('scrollback', 'hasOccupant', 'aravind', {entered: 123}, d);
 });
 
 run('getLinkForward', function(d) {
@@ -130,6 +130,18 @@ run('getLinkForward', function(d) {
 
 run('getLinkReverse', function(d) {
 	users.get({by: 'occupantOf', eq: 'scrollback'}, d);
+});
+
+run('overwriteIndexedLink', function(d) {
+	users.link('harish', 'memberOf', 'bitcoin', {role: 'moderato'}, d);
+});
+
+run('getLinkIndexAgain', function(d) {
+	rooms.get({by: 'hasMember', eq: 'harish'}, d);
+});
+
+run('getLinkIndReverse', function(d) {
+	users.get({by: 'memberOf', eq: 'bitcoin'}, d);
 });
 
 run('goodUnlink', function(d) {
