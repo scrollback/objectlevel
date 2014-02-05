@@ -47,7 +47,15 @@ run('getUsers', function(d) {
 });
 
 run('overWriteUser', function(d) {
-	users.put({id: 'aravind'}, d);
+	users.put({id: 'aravind', newProp: 'new property'}, { preUpdate: function(old, obj) {
+		obj.oldProp = 'not so new';
+	}}, d);
+});
+
+run('abortWriteUser', function(d) {
+	users.put({id: 'harish', newProp: 'abc'}, { preUpdate: function() {
+		return false;
+	}}, d);
 });
 
 run('getUsers', function(d) {

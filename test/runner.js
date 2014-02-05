@@ -1,13 +1,13 @@
 var util = require("util");
-//
-//Array.prototype.inspect = function(depth) {
-//	var str = '[', i;
-//	for(i=0; i<this.length && str.length < 144; i++) {
-//		str += util.inspect(this[i], {colors: true,depth: depth-1}) + (i<this.length-1? ', ': '');
-//	}
-//	
-//	return str + (this.length>i? '+' + (this.length-i): '') + ']';
-//};
+
+Array.prototype.inspect = function(depth) {
+	var str = '[', i;
+	for(i=0; i<this.length && str.length < 240; i++) {
+		str += util.inspect(this[i], {colors: true,depth: depth-1}) + (i<this.length-1? ', ': '');
+	}
+	
+	return str + (this.length>i? '+' + (this.length-i): '') + ']';
+};
 
 module.exports = (function() {
 	var tests = [], labels=[], running = false;

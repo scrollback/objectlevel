@@ -11,6 +11,16 @@ Indexed, relational JSON store for Node.js using flat files and [LevelDB](https:
 
 ### What's new
 
+#### v0.1.6
+- Added preUpdate hooks to put(). You can now do:
+``` javascript
+db.put(object, {preUpdate: function(obj, old) {
+	console.log('An old value exists with this ID:', old);
+	obj.createdOn = old.createdOn;
+	// Maybe I should abort this put? return false;
+}}, putCompleted)
+```
+
 #### v0.1.5
 - Fixes an issue that caused updates on indexed links to waste space
 
