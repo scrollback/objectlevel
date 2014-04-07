@@ -152,6 +152,10 @@ run('getLinkIndReverse', function(d) {
 	users.get({by: 'memberOf', eq: 'bitcoin'}, d);
 });
 
+run('getTargetLinkData', function(d) {
+	users.get({by: 'memberOf', eq: ['bitcoin', 'harish']}, d);
+});
+
 run('goodUnlink', function(d) {
 	users.unlink('aravind', 'occupantOf', 'bitcoin', d);
 });
