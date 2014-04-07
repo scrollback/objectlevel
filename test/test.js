@@ -1,7 +1,9 @@
+/* global it, describe */
+
 var objectlevel = require("../index.js"),
 	store = new objectlevel('./testdb'),
 	words = require("../lib/words.js"),
-	run = require("./runner.js");
+	assert = require('assert');
 
 var rooms = store.defineType('rooms', {
 	indexes: {
@@ -12,6 +14,7 @@ var rooms = store.defineType('rooms', {
 		}
 	}
 });
+
 var users = store.defineType('users');
 var messages = store.defineType('messages', {
 	indexes: {
@@ -31,42 +34,42 @@ store.defineLink({hasMember: users, memberOf: rooms}, { indexes: {
 	role: function(data, emit) {emit(data.role || 'member');}
 }});
 
-run('putRooms', function (d) {
+it('should putRooms', function (done) {
 	rooms.put([
 		{id: 'scrollback', identities: ['irc:irc.rizon.net/scrollback']},
 		{id: 'nodejs', identities: ['irc:irc.freenode.net/nodejs']}
-	], d);
+	], function(err, res) { if(err) throw err; done(); });
 });
 
-run('putUsers', function(d) {
-	users.put([{id: 'aravind'}, {id: 'harish'}], d);
+it('should putUsers', function (done) {
+	users.put([{id: 'aravind'}, {id: 'harish'}], function(err, res) { if(err) throw err; done(); });
 });
 
-run('getUsers', function(d) {
-	users.get(d);
+it('should getUsers', function (done) {
+	users.get(function(err, res) { if(err) throw err; done(); });
 });
 
-run('overWriteUser', function(d) {
+it('should overWriteUser', function (done) {
 	users.put({id: 'aravind', newProp: 'new property'}, { preUpdate: function(old, obj) {
 		obj.oldProp = 'not so new';
-	}}, d);
+	}}, function(err, res) { if(err) throw err; done(); });
 });
 
-run('abortWriteUser', function(d) {
+it('should abortWriteUser', function (done) {
 	users.put({id: 'harish', newProp: 'abc'}, { preUpdate: function() {
 		return false;
-	}}, d);
+	}}, function(err, res) { if(err) throw err; done(); });
 });
 
-run('getUsers', function(d) {
-	users.get(d);
+it('should getUsers', function (done) {
+	users.get(function(err, res) { if(err) throw err; done(); });
 });
 
-run('getRooms', function(d) {
-	rooms.get(d);
+it('should getRooms', function (done) {
+	rooms.get(function(err, res) { if(err) throw err; done(); });
 });
 
-run('putMessages', function(d) {
+it('should putMessages', function (done) {
 	var m = [], n;
 	for(n=20; n>0; n--) m.push({
 		from: Math.random() < 0.5? 'aravind': 'harish',
@@ -76,119 +79,131 @@ run('putMessages', function(d) {
 		text: words.paragraph(1)
 	});
 	
-	messages.put(m, d);
+	messages.put(m, function(err, res) { if(err) throw err; done(); });
 });
 
-run('putRoom', function(d) {
-	rooms.put({id: 'bitcoin'}, d);
+it('should putRoom', function (done) {
+	rooms.put({id: 'bitcoin'}, function(err, res) { if(err) throw err; done(); });
 });
 
-run('getOneRoom', function(d) {
-	rooms.get('nodejs', d);
+it('should getOneRoom', function (done) {
+	rooms.get('nodejs', function(err, res) { if(err) throw err; done(); });
 });
 
-run('getBadRoom', function(d) {
-	rooms.get('badroom', d);
+it('should getBadRoom', function (done) {
+	rooms.get('badroom', function(err, res) { if(err) throw err; done(); });
 });
 
-run('getRooms', function(d) {
-	rooms.get(d);
+it('should getRooms', function (done) {
+	rooms.get(function(err, res) { if(err) throw err; done(); });
 });
 
-run('getAllMessages', function(d) {
-	messages.get(d);
+it('should getAllMessages', function (done) {
+	messages.get(function(err, res) { if(err) throw err; done(); });
 });
 
-run('getSomeMessages', function(d) {
+it('should getSomeMessages', function (done) {
 	var start = - new Date().getTime() + 5*2000, end = - new Date().getTime() + 15*2000;
 	messages.get({
 		by:'totime', 
 		start: ['scrollback', start],
 		end: ['scrollback', end]
-	}, d);
+	}, function(err, res) { if(err) throw err; done(); });
 });
 
-run('addLink1', function(d) {
-	rooms.link('scrollback', 'hasOccupant', 'aravind', {entered: 343}, d);
+it('should addLink1', function (done) {
+	rooms.link('scrollback', 'hasOccupant', 'aravind', {entered: 343}, function(err, res) { if(err) throw err; done(); });
 });
 
-run('addLink2', function(d) {
-	rooms.link('bitcoin', 'hasMember', 'aravind', {role: 'owner'}, d);
+it('should addLink2', function (done) {
+	rooms.link('bitcoin', 'hasMember', 'aravind', {role: 'owner'}, function(err, res) { if(err) throw err; done(); });
 });
 
-run('addLinkBack', function(d) {
-	users.link('harish', 'memberOf', 'bitcoin', {role: 'moderator'}, d);
+it('should addLinkBack', function (done) {
+	users.link('harish', 'memberOf', 'bitcoin', {role: 'moderator'}, function(err, res) { if(err) throw err; done(); });
 });
 
-run('getLinkForward', function(d) {
-	rooms.get({by: 'hasOccupant', eq: 'aravind'}, d);
+it('should getLinkForward', function (done) {
+	rooms.get({by: 'hasOccupant', eq: 'aravind'}, function(err, res) { if(err) throw err; done(); });
 });
 
-run('getLinkRevIndex', function(d) {
-	users.get({by: 'memberOf', eq: ['bitcoin', 'role', 'moderator']}, d);
+it('should getLinkRevIndex', function (done) {
+	users.get({by: 'memberOf', eq: ['bitcoin', 'role', 'moderator']}, function(err, res) { if(err) throw err; done(); });
 });
 
-run('overWriteLink', function(d) {
-	rooms.link('scrollback', 'hasOccupant', 'aravind', {entered: 123}, d);
+it('should overWriteLink', function (done) {
+	rooms.link('scrollback', 'hasOccupant', 'aravind', {entered: 123}, function(err, res) { if(err) throw err; done(); });
 });
 
-run('getLinkForward', function(d) {
-	rooms.get({by: 'hasOccupant', eq: 'aravind'}, d);
+it('should getLinkForward', function (done) {
+	rooms.get({by: 'hasOccupant', eq: 'aravind'}, function(err, res) { if(err) throw err; done(); });
 }); 
 
-run('getLinkReverse', function(d) {
-	users.get({by: 'occupantOf', eq: 'scrollback'}, d);
+it('should getLinkReverse', function (done) {
+	users.get({by: 'occupantOf', eq: 'scrollback'}, function(err, res) { if(err) throw err; done(); });
 });
 
-run('overwriteIndexedLink', function(d) {
-	users.link('harish', 'memberOf', 'bitcoin', {role: 'moderato'}, d);
+it('should overwriteIndexedLink', function (done) {
+	users.link('harish', 'memberOf', 'bitcoin', {role: 'moderato'}, function(err, res) { if(err) throw err; done(); });
 });
 
-run('getLinkIndexAgain', function(d) {
-	rooms.get({by: 'hasMember', eq: 'harish'}, d);
+it('should getLinkIndexAgain', function (done) {
+	rooms.get({by: 'hasMember', eq: 'harish'}, function(err, res) { if(err) throw err; done(); });
 });
 
-run('getLinkIndReverse', function(d) {
-	users.get({by: 'memberOf', eq: 'bitcoin'}, d);
+it('should getLinkIndReverse', function (done) {
+	users.get({by: 'memberOf', eq: 'bitcoin'}, function(err, res) { if(err) throw err; done(); });
 });
 
-run('getTargetLinkData', function(d) {
-	users.get({by: 'memberOf', eq: ['bitcoin', 'harish']}, d);
+it('should goodUnlink', function (done) {
+	users.unlink('aravind', 'occupantOf', 'bitcoin', function(err, res) { if(err) throw err; done(); });
 });
 
-run('goodUnlink', function(d) {
-	users.unlink('aravind', 'occupantOf', 'bitcoin', d);
+it('should verifyOtherLinks', function (done) {
+	rooms.get({by: 'hasOccupant', eq: 'aravind'}, function(err, res) { if(err) throw err; done(); });
 });
 
-run('verifyOtherLinks', function(d) {
-	rooms.get({by: 'hasOccupant', eq: 'aravind'}, d);
+it('should verifyOtherLinksBack', function (done) {
+	users.get({by: 'occupantOf', eq: 'scrollback'}, function(err, res) { if(err) throw err; done(); });
 });
 
-run('verifyOtherLinksBack', function(d) {
-	users.get({by: 'occupantOf', eq: 'scrollback'}, d);
+it('should badUnlink', function (done) {
+	users.unlink('aravind', 'occupantOf', 'asdf', function(err, res) { if(err) throw err; done(); });
 });
 
-run('badUnlink', function(d) {
-	users.unlink('aravind', 'occupantOf', 'asdf', d);
+it('should getLinkEmpty', function (done) {
+	users.get({by: 'occupantOf', eq: 'bitcoin'}, function(err, res) { if(err) throw err; done(); });
 });
 
-run('getLinkEmpty', function(d) {
-	users.get({by: 'occupantOf', eq: 'bitcoin'}, d);
+it('should delete', function (done) {
+	rooms.del('scrollback', function(err, res) { if(err) throw err; done(); });
 });
 
-run('delete', function(d) {
-	rooms.del('scrollback', d);
+it('should getRoomKeys', function (done) {
+	rooms.get({by: 'identity', eq: 'irc', keys: true}, function(err, res) { if(err) throw err; done(); });
 });
 
-run('verifyDelete', function(d) {
-	rooms.get('scrollback', d);
-})
-
-run('getRoomKeys', function(d) {
-	rooms.get({by: 'identity', eq: 'irc', keys: true}, d);
+it('should getMessageKeys', function (done) {
+	messages.get({by: 'totime', eq: 'scrollback', keys: true}, function(err, res) { if(err) throw err; done(); });
 });
 
-run('getMessageKeys', function(d) {
-	messages.get({by: 'totime', eq: 'scrollback', keys: true}, d);
+it('should mapFunction', function (done) {
+	//messages.get({
 });
-
+//
+//
+//run('getTargetLinkData', function(d) {
+//	users.get({by: 'memberOf', eq: ['bitcoin', 'harish']}, d);
+//});
+//
+//run('goodUnlink', function(d) {
+//	users.unlink('aravind', 'occupantOf', 'bitcoin', d);
+//});
+//
+//run('verifyDelete', function(d) {
+//	rooms.get('scrollback', d);
+//})
+//
+//run('getRoomKeys', function(d) {
+//	rooms.get({by: 'identity', eq: 'irc', keys: true}, d);
+//});

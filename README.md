@@ -11,10 +11,37 @@ Indexed, relational JSON store for Node.js using flat files and [LevelDB](https:
 
 ### What's new
 
+#### v0.1.8
+- Fixed a bug where .del() didn't work sometimes.
+- Added the ability to efficiently return link data for a single link, where both endpoints are known.
+  You can now do:
+```javascript
+type.get({
+	by: 'linkname',
+	eq: ['fromId', 'toId'] // IDs of the endpoints of the link.
+}, handleResults);
+```
+This returns the object with ID 'toId' with embedded link data.
+
+#### v0.1.7
+- Added map functions to get(). You can now do:
+```javascript
+var query = {
+	by: 'indexname', eq: 'value',
+	map: function(obj, emit) {
+		if(obj.foo) emit(obj.bar);
+	}
+};
+
+type.get(query, handleResults);
+```
+
+This helps filter and transform results after retrieving them from the database.
+
 #### v0.1.6
 - Added preUpdate hooks to put(). You can now do:
 ``` javascript
-db.put(object, {preUpdate: function(obj, old) {
+type.put(object, {preUpdate: function(obj, old) {
 	console.log('An old value exists with this ID:', old);
 	obj.createdOn = old.createdOn;
 	// Maybe I should abort this put? return false;
