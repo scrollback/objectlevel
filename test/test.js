@@ -176,6 +176,10 @@ run('delete', function(d) {
 	rooms.del('scrollback', d);
 });
 
+run('verifyDelete', function(d) {
+	rooms.get('scrollback', d);
+})
+
 run('getRoomKeys', function(d) {
 	rooms.get({by: 'identity', eq: 'irc', keys: true}, d);
 });
