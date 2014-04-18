@@ -11,6 +11,12 @@ Indexed, relational JSON store for Node.js using flat files and [LevelDB](https:
 
 ### What's new
 
+#### v0.1.9
+- The `start` and `end` parameters of queries have been renamed `gte` and `lte` to reduce confusion 
+while querying in the reverse direction, and for consistency with the `eq` parameter. If you use
+range queries, you must update your code.
+- There was a bug in the bitwise-comparable encoding of some large negative numbers. This has been fixed.
+
 #### v0.1.8
 - Fixed a bug where .del() didn't work sometimes.
 - Added the ability to efficiently return link data for a single link, where both endpoints are known.

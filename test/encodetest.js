@@ -1,59 +1,36 @@
 var encode = require("../lib/encode.js");
 
-function dotest(num) {
+function testValue(num) {
 	var code = encode(num),
 		dec = encode.decode(code);
-	
-	if(dec !== num) {
-		var x = new Buffer(8), y, z = new Buffer(8);
-		x.writeDoubleBE(num, 0);
-		z.writeDoubleBE(dec, 0);
-
-		y = dec85(code.substr(1));
-
-		console.log(
-			"Failed " + num + " -> " + dec + " (" + 
-			x.toString('hex') + ' > ' + y.toString('hex') + 
-			' > ' + z.toString('hex') + ")"
-		);
-	}
-//	else console.log(num + " passed");
+	if(dec !== num) console.log("Encode/Decode Error ", num, code, dec);
 }
 
-function dec85(s) {
-	var b, pad, val, c;
-	pad = (5 - s.length%5) % 5;
-	
-	c = Buffer(s.length + pad);
-	c.write(s, 0);
-	if(pad) c.fill(126, s.length);
-	b = Buffer((s.length + pad) * 4/5);
-	
-	for(var i=0; i<c.length/5; i++) {
-		val = 0;
-		for(var j=0; j<5; j++) {
-			val = val*85 + c.readUInt8(i*5+j) - 42;
-		}
-		b.writeUInt32BE(val, i*4);
+function testScale(scale, N) {
+	var i, num, last, curr, dec;
+	last = undefined;
+	for(i=0; i<=N; i++) {
+		num = (-1 + 2*i/N)*scale;
+		curr = encode(num);
+		if(typeof last !== 'undefined' && last && curr <= last) console.log("Monotonicity Error", num, curr, last);
+		dec = encode.decode(curr);
+		if(dec !== num) console.log("Encode/Decode Error ", num, curr, dec);
+		
+		last = curr;
 	}
-	return b.slice(0, b.length - pad);
 }
 
 function test() {
-	var i;
-	for(i=0; i<200; i++) {
-		dotest((i-200)*1000000);
+	var i, M = 45;
+	testValue(0);
+	testValue(Infinity);
+	testValue(-Infinity);
+	
+	for(i=0; i<=2*M; i++) {
+		console.log("Testing scale ", Math.exp(i-M));
+		testScale(Math.exp(i-M), 10000);
 	}
-	// for(i=0; i<20; i++) {
-	// 	dotest(rand());
-	// }
-	// dotest(0);
-	// dotest(Infinity);
-	// dotest(-Infinity)
 }
 
-function rand() {
-	return (Math.random()-0.5)*100000000000000;
-}
 
 test();

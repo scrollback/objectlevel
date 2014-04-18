@@ -2,7 +2,6 @@
 
 var objectlevel = require("../index.js"),
 	store = new objectlevel('./testdb'),
-	words = require("../lib/words.js"),
 	assert = require('assert');
 
 var time = 1397813081597;
