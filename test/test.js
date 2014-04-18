@@ -5,6 +5,7 @@ var objectlevel = require("../index.js"),
 	words = require("../lib/words.js"),
 	assert = require('assert');
 
+var time = 1397813081597;
 var rooms = store.defineType('rooms', {
 	indexes: {
 		identity: function(room, emit) {
@@ -71,12 +72,13 @@ it('should getRooms', function (done) {
 
 it('should putMessages', function (done) {
 	var m = [], n;
-	for(n=20; n>0; n--) m.push({
-		from: Math.random() < 0.5? 'aravind': 'harish',
-		to: Math.random() < 0.5? 'scrollback': 'nodejs',
+	
+	for(n=19; n>=0; n--) m.push({
+		from: 'harish',
+		to: 'nodejs',
 		type: 'text',
-		time: new Date().getTime() - n*2000 - Math.floor(Math.random()*2000),
-		text: words.paragraph(1)
+		time: (time - n*2000),
+		text: "text"+n
 	});
 	
 	messages.put(m, function(err, res) { if(err) throw err; done(); });
@@ -99,18 +101,46 @@ it('should getRooms', function (done) {
 });
 
 it('should getAllMessages', function (done) {
-	messages.get(function(err, res) { if(err) throw err; done(); });
+	messages.get(function(err, res) { if(err) throw err; console.log(res.length); done(); });
 });
 
 it('should getSomeMessages', function (done) {
-	var start = - new Date().getTime() + 5*2000, end = - new Date().getTime() + 15*2000;
+	var start = -time, end = -(time -(21*2000));
+	console.log(end, start);
 	messages.get({
 		by:'totime', 
-		start: ['scrollback', start],
-		end: ['scrollback', end]
-	}, function(err, res) { if(err) throw err; done(); });
+		start: ['nodejs', start],
+		end: ['nodejs', end],
+		keys: true
+	}, function(err, res) {
+		if(err) throw err;
+		console.log(res);
+		assert(res, "no response");
+		assert(res.length, "no array");
+		assert.equal(-res[0].time, start, "not correct order");
+		done();
+	});
 });
-
+it('should getSomeMessages', function (done) {
+	var start = -time, end = -(time -(21*2000));
+	console.log(end, start);
+	messages.get({
+		by:'totime', 
+		start: ['nodejs', start],
+		end: ['nodejs', end],
+		reverse: true,
+		keys: true
+	}, function(err, res) {
+		if(err) throw err;
+		console.log(res);
+		assert(res, "no response");
+		assert(res.length, "no array");
+		// assert(-res[0].time != start, "not reversed");
+		console.log(-res[res.length-1].time, end);
+		assert.equal(-res[res.length-1].time, end, "not correct order");
+		done();
+	});
+});
 it('should addLink1', function (done) {
 	rooms.link('scrollback', 'hasOccupant', 'aravind', {entered: 343}, function(err, res) { if(err) throw err; done(); });
 });
@@ -189,6 +219,7 @@ it('should getMessageKeys', function (done) {
 
 it('should mapFunction', function (done) {
 	//messages.get({
+		done();
 });
 //
 //
