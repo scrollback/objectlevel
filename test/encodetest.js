@@ -32,5 +32,6 @@ function test() {
 	}
 }
 
-
+var d = new Date();
 test();
+console.log(new Date() - d);
