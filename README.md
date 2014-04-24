@@ -11,6 +11,9 @@ Indexed, relational JSON store for Node.js using flat files and [LevelDB](https:
 
 ### What's new
 
+#### v0.1.11
+- Fixed issues with delete, unlink and map.
+
 #### v0.1.10
 - Moved all the tests to Mocha
 - Fixed issue with .get() with string ID

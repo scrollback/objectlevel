@@ -43,7 +43,7 @@ describe("Testing put and get: ", function() {
 		rooms.put({
 			id: 'scrollback',
 			identities: ['irc:irc.rizon.net/scrollback']
-		}, function(err, res) {
+		}, function(err) {
 			assert(!err, "error thrown - ");
 			done();
 		});
@@ -53,14 +53,14 @@ describe("Testing put and get: ", function() {
 		rooms.put({
 			id: 'scrollbackteam',
 			identities: ['irc:irc.rizon.net/scrollbackteam']
-		}, function(err, res) {
+		}, function(err) {
 			assert(!err, "error thrown - ");
 			done();
 		});
 	});
 
 	it('deleting a room', function (done) {
-		rooms.del('scrollbackteam', function(err, res) { 
+		rooms.del('scrollbackteam', function(err) { 
 			assert(!err, "error thrown - ");
 			done(); 
 		});
@@ -96,7 +96,7 @@ describe("Testing put and get: ", function() {
 			var res;
 			assert(!err, "error thrown - ");
 			assert.equal(data.length, 1, "got multiple objects");
-			res = data[0]
+			res = data[0];
 			assert.equal(res.id, "scrollback", "got wrong room");
 			assert.equal(res.identities[0], "irc:irc.rizon.net/scrollback", "got wrong identity");
 			done();
@@ -104,7 +104,7 @@ describe("Testing put and get: ", function() {
 	});
 
 	it('trying insert of multiple items: ', function (done) {
-		users.put([{id: 'user-aravind', name:"aravind"}, {id: 'user-harish', name:"harish"}], function(err, res) {
+		users.put([{id: 'user-aravind', name:"aravind"}, {id: 'user-harish', name:"harish"}], function(err) {
 			assert(!err, "error thrown");
 			done();
 		});
@@ -168,7 +168,7 @@ describe("Testing put and get: ", function() {
 			var res;
 			assert(!err, "error thrown - ");
 			assert.equal(data.length, 1, "got multiple objects");
-			res = data[0]
+			res = data[0];
 			assert.equal(res.id, "scrollback", "got wrong room");
 			assert.equal(res.identities[0], "irc:irc.rizon.net/scrollfree", "got wrong identity");
 			done();
@@ -418,7 +418,7 @@ describe("testing links: ", function() {
 		});
 	});
 	it('Unlink', function (done) {
-		users.unlink('aravind', 'occupantOf', 'scrollback', function(err, res) {
+		users.unlink('user-aravind', 'occupantOf', 'scrollback', function(err, res) {
 			assert(!err, "error thrown - ");
 			done();
 		});
