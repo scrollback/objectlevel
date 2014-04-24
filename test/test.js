@@ -4,7 +4,7 @@ var objectlevel = require("../index.js"),
 	store = new objectlevel('./testdb'),
 	assert = require('assert');
 
-var time = 1397813081597;
+var time = 1390000000000;
 var rooms = store.defineType('rooms', {
 	indexes: {
 		identity: function(room, emit) {
@@ -19,11 +19,11 @@ var users = store.defineType('users');
 var messages = store.defineType('messages', {
 	indexes: {
 		totime: function (msg, emit) {
-			emit(msg.to, -msg.time);
+			emit(msg.to, msg.time);
 		},
-		tolabeltime: function(msg, emit) {
+		tofromtime: function(msg, emit) {
 			if(msg.labels) for(var i in msg.labels) {
-				emit(msg.to, i, -msg.time);
+				emit(msg.to, i, msg.time);
 			}
 		}
 	}
@@ -34,206 +34,405 @@ store.defineLink({hasMember: users, memberOf: rooms}, { indexes: {
 	role: function(data, emit) {emit(data.role || 'member');}
 }});
 
-it('should putRooms', function (done) {
-	rooms.put([
-		{id: 'scrollback', identities: ['irc:irc.rizon.net/scrollback']},
-		{id: 'nodejs', identities: ['irc:irc.freenode.net/nodejs']}
-	], function(err, res) { if(err) throw err; done(); });
+console.log("+++++++++++++++++++++++++++++++++++++++++++++++++++++");
+console.log("+++++++clearing db before test would be better+++++++");
+console.log("+++++++++++++++++++++++++++++++++++++++++++++++++++++");
+
+describe("Testing put and get: ", function() {
+	it('adding rooms to the db: ', function (done) {
+		rooms.put({
+			id: 'scrollback',
+			identities: ['irc:irc.rizon.net/scrollback']
+		}, function(err, res) {
+			assert(!err, "error thrown - ");
+			done();
+		});
+	});
+
+	it('adding another room: ', function (done) {
+		rooms.put({
+			id: 'scrollbackteam',
+			identities: ['irc:irc.rizon.net/scrollbackteam']
+		}, function(err, res) {
+			assert(!err, "error thrown - ");
+			done();
+		});
+	});
+
+	it('deleting a room', function (done) {
+		rooms.del('scrollbackteam', function(err, res) { 
+			assert(!err, "error thrown - ");
+			done(); 
+		});
+	});
+
+	it('trying to get the deleted room: ', function(done) {
+		rooms.get('scrollbackteam', function(err, res) {
+			assert(!err, "error thrown - ");
+			assert(!res, "got wrong room");
+			done();
+		});
+	});
+
+	it('trying to get invalid room: ', function(done) {
+		rooms.get('noscrollback', function(err, res) {
+			assert(!err, "error thrown - ");
+			assert(!res, "got wrong room");
+			done();
+		});
+	});
+
+	it('trying to get rooms: ', function(done) {
+		rooms.get('scrollback', function(err, res) {
+			assert(!err, "error thrown - ");
+			assert.equal(res.id, "scrollback", "got wrong room");
+			assert.equal(res.identities[0], "irc:irc.rizon.net/scrollback", "got wrong identity");
+			done();
+		});
+	});
+
+	it('trying to get based on index: ', function(done) {
+		rooms.get({by:"identity", eq: ['irc', 'irc.rizon.net/scrollback']}, function(err, data) {
+			var res;
+			assert(!err, "error thrown - ");
+			assert.equal(data.length, 1, "got multiple objects");
+			res = data[0]
+			assert.equal(res.id, "scrollback", "got wrong room");
+			assert.equal(res.identities[0], "irc:irc.rizon.net/scrollback", "got wrong identity");
+			done();
+		});
+	});
+
+	it('trying insert of multiple items: ', function (done) {
+		users.put([{id: 'user-aravind', name:"aravind"}, {id: 'user-harish', name:"harish"}], function(err, res) {
+			assert(!err, "error thrown");
+			done();
+		});
+	});
+
+	it('checking multiple inserts 1: ', function(done) {
+		users.get('user-aravind', function(err, res) {
+			assert(!err, "error thrown - ");
+			assert.equal(res.id, "user-aravind", "got wrong user");
+			assert.equal(res.name, "aravind", "something wrong. value of a property is wrong");
+			done();
+		});
+	});
+
+	it('checking multiple inserts 2: ', function(done) {
+		users.get('user-harish', function(err, res) {
+			assert(!err, "error thrown - ");
+			assert.equal(res.id, "user-harish", "got wrong user");
+			assert.equal(res.name, "harish", "something wrong. value of a property is wrong");
+			done();
+		});
+	});
+
+	it('overwrite user: ', function(done) {
+		users.put({id: 'user-harish', name: "harish kumar v"}, function(err, res) {
+			assert(!err, "error thrown - ");
+			done();
+		});
+	});
+
+	it('checking user overwrite 1: ', function(done) {
+		users.get('user-harish', function(err, res) {
+			assert(!err, "error thrown - ");
+			assert.equal(res.id, "user-harish", "got wrong user");
+			assert.equal(res.name, "harish kumar v", "something wrong. value of a property is wrong");
+			done();
+		});
+	});
+
+	it('overwrite room: ', function(done) {
+		rooms.put({
+			id: 'scrollback',
+			identities: ['irc:irc.rizon.net/scrollfree']
+		}, function(err, res) {
+			assert(!err, "error thrown - ");
+			done();
+		});
+	});
+
+	it('checking room overwrite 1: ', function(done) {
+		rooms.get('scrollback', function(err, res) {
+			assert(!err, "error thrown - ");
+			assert.equal(res.id, "scrollback", "got wrong room");
+			assert.equal(res.identities[0], "irc:irc.rizon.net/scrollfree", "got wrong identity");
+			done();
+		});
+	});
+
+	it('checking room overwrite 2: ', function(done) {
+		rooms.get({by:"identity", eq: ['irc','irc.rizon.net/scrollfree']}, function(err, data) {
+			var res;
+			assert(!err, "error thrown - ");
+			assert.equal(data.length, 1, "got multiple objects");
+			res = data[0]
+			assert.equal(res.id, "scrollback", "got wrong room");
+			assert.equal(res.identities[0], "irc:irc.rizon.net/scrollfree", "got wrong identity");
+			done();
+		});
+	});
+
+	it('checking old index after overwrite: ', function(done) {
+		rooms.get({by:"identity", eq: ['irc:irc.rizon.net/scrollback']}, function(err, data) {
+			assert(!err, "error thrown - ");
+			assert.equal(data.length, 0, "why did it return data for old index");
+			done();
+		});
+	});
+
+	it('testing preUpdate with user: ', function(done) {
+		users.put({id: 'user-harish', name:"harish", mail: "harish@IamAfreakinGenius.com"}, { preUpdate: function(old, obj) {
+			obj.name = old.name;
+		}}, function(err, res) { 
+			assert(!err, "error thrown - ");
+			done();
+		});	
+	});
+
+	it('checking after update: ', function(done) {
+		users.get('user-harish', function(err, res) {
+			assert(!err, "error thrown - ");
+			assert.equal(res.id, "user-harish", "got wrong user");
+			assert.equal(res.name, "harish kumar v", "something wrong. value of a property is wrong");
+			assert.equal(res.mail, "harish@IamAfreakinGenius.com", "something wrong. value of a property is wrong");
+			done();
+		});
+	});
+
+	it('testing insert abort with preUpdate: ', function(done) {
+		users.put({id: 'user-harish', name:"harish", mail: "harish@IamAfreakinGenius.com"}, { preUpdate: function(old, obj) {
+			obj.name = old.name;
+		}}, function(err, res) { 
+			assert(!err, "error thrown - ");
+			done();
+		});	
+	});
+
+	it('checking after update abort: ', function(done) {
+		users.get('user-harish', function(err, res) {
+			assert(!err, "error thrown - ");
+			assert.equal(res.id, "user-harish", "got wrong user");
+			assert.equal(res.name, "harish kumar v", "something wrong. value of a property is wrong");
+			assert.equal(res.mail, "harish@IamAfreakinGenius.com", "something wrong. value of a property is wrong");
+			done();
+		});
+	});
+
+	it('should putMessages', function (done) {
+		var m = [], n, i;
+		for(i=0;i<10;i++) {
+			m.push({
+				from: 'harish',
+				to: 'scrollback',
+				time: (time + i*2000),
+				text: "text"+(i+1)
+			});
+		}
+		
+		for(i=10;i<20;i++) {
+			m.push({
+				from: 'aravind',
+				to: 'scrollback',
+				time: (time + i*2000),
+				text: "text"+(i+1)
+			});
+		}
+		for(i=20;i<30;i++) {
+			m.push({
+				from: 'harish',
+				to: 'nodejs',
+				time: (time + i*2000),
+				text: "text"+(i+1)
+			});
+		}
+		
+		for(i=30;i<40;i++) {
+			m.push({
+				from: 'aravind',
+				to: 'nodejs',
+				time: (time + i*2000),
+				text: "text"+(i+1)
+			});
+		}
+
+		messages.put(m, function(err, res) {
+			assert(!err, "error thrown - ");
+			done();
+		});
+	});
+
+	it("trying to get using one value on index with two keys", function(done) {
+		messages.get({by:"totime", eq:['scrollback']}, function(err, data) {
+			assert(!err, "error thrown - ");
+			assert(data.length, 20, "error thrown - ");
+			data.forEach(function(msg) {
+				assert.equal(msg.to, "scrollback", "message from another room got in.");
+			});
+			done();
+		});
+	});
+
+	it("trying to get using one value on index with two keys", function(done) {
+		messages.get({by:"totime", gte:['scrollback', time], lte:['scrollback']}, function(err, data) {
+			assert(!err, "error thrown - ");
+			assert(data.length, 20, "error thrown - ");
+			data.forEach(function(msg) {
+				assert.equal(msg.to, "scrollback", "message from another room got in.");
+			});
+			done();
+		});
+	});
+
+	it("trying to get using one value on index with two keys", function(done) {
+		messages.get({by:"totime", gte:['scrollback', time+(20000)], lte:['scrollback']}, function(err, data) {
+			assert(!err, "error thrown - ");
+			assert(data.length, 10, "error thrown - ");
+			data.forEach(function(msg) {
+				assert.equal(msg.to, "scrollback", "message from another room got in.");
+			});
+			done();
+		});
+	});
+
+	it("trying to get using one value on index with two keys", function(done) {
+		messages.get({by:"totime", gte: ['scrollback'], lte:['scrollback', time+(20000)]}, function(err, data) {
+			var t;
+			assert(!err, "error thrown - ");
+			assert(data.length, 10, "error thrown - ");
+			t = data[0].time;
+			data.forEach(function(msg) {
+				assert.equal(msg.to, "scrollback", "message from another room got in.");
+				assert(t<=msg.time, "scrollback", "message from another room got in.");
+				t = msg.time;
+			});
+			done();
+		});
+	});
+
+	it("testing reversed", function(done) {
+		messages.get({by:"totime", gte: ['scrollback', time], lte:['scrollback'], reverse: true}, function(err, data) {
+			var t;
+			assert(!err, "error thrown - ");
+			assert(data.length, 10, "error thrown - ");
+			t = data[0].time;
+			data.forEach(function(msg) {
+				assert.equal(msg.to, "scrollback", "message from another room got in.");
+				assert(t>=msg.time, "message from another room got in.");
+				t = msg.time;
+			});
+			done();
+		});
+	});
+
+	it("testing limit", function(done) {
+		messages.get({by:"totime", gte: ['scrollback', time], lte:['scrollback'], limit: 5}, function(err, data) {
+			var t;
+			assert(!err, "error thrown - ");
+			assert(data.length, 5, "limit not working.");
+			t = data[0].time;
+			assert.equal(time, t, "time not correct");
+			data.forEach(function(msg) {
+				assert.equal(msg.to, "scrollback", "message from another room got in.");
+				assert(t<=msg.time, "message from another room got in.");
+				t = msg.time;
+			});
+			done();
+		});
+	});
+
+	it('should getAllMessages', function (done) {
+		messages.get(function(err, data) { 
+			assert(!err, "error thrown - ");
+			assert(data.length, 40, "limit not working.");
+			done(); 
+		});
+	});
 });
 
-it('should putUsers', function (done) {
-	users.put([{id: 'aravind'}, {id: 'harish'}], function(err, res) { if(err) throw err; done(); });
-});
 
-it('should getUsers', function (done) {
-	users.get(function(err, res) { if(err) throw err; done(); });
-});
+describe("testing links: ", function() {
+	it("adding link", function(done) {
+		rooms.link('scrollback', 'hasOccupant', 'user-aravind', {entered: 343}, function(err, res) {
+			assert(!err, "error thrown - ");
+			done();	
+		});
+	});
 
-it('should overWriteUser', function (done) {
-	users.put({id: 'aravind', newProp: 'new property'}, { preUpdate: function(old, obj) {
-		obj.oldProp = 'not so new';
-	}}, function(err, res) { if(err) throw err; done(); });
-});
+	it("querying link", function(done) {
+		rooms.get({by: 'hasOccupant', eq: 'user-aravind'}, function(err, res) {
+			assert(!err, "error thrown - ");
+			assert.equal(res[0].id, "scrollback", "wrong room");
+			done();	
+		});
+	});
 
-it('should abortWriteUser', function (done) {
-	users.put({id: 'harish', newProp: 'abc'}, { preUpdate: function() {
-		return false;
-	}}, function(err, res) { if(err) throw err; done(); });
-});
+	it("querying link", function(done) {
+		users.get({by: 'occupantOf', eq: ['scrollback'] }, function(err, res) {
+			var ids = {}; 
+			assert(!err, "error thrown - ");
+			assert.equal(res[0].id, "user-aravind", "wrong room");
+			assert.equal(res[0].entered, 343, "wrong room");
+			done();	
+		});
+	});
 
-it('should getUsers', function (done) {
-	users.get(function(err, res) { if(err) throw err; done(); });
-});
+	it("link overwrite", function(done) {
+		rooms.link('scrollback', 'hasOccupant', 'user-aravind', {entered: 279}, function(err, res) {
+			assert(!err, "error thrown - ");
+			done();	
+		});
+	});
 
-it('should getRooms', function (done) {
-	rooms.get(function(err, res) { if(err) throw err; done(); });
-});
+	it("querying link", function(done) {
+		users.get({by: 'occupantOf', eq: ['scrollback'] }, function(err, res) {
+			var ids = {}; 
+			assert(!err, "error thrown - ");
+			assert.equal(res[0].id, "user-aravind", "wrong room");
+			assert.equal(res[0].entered, 279, "wrong room");
+			done();	
+		});
+	});
 
-it('should putMessages', function (done) {
-	var m = [], n;
-	
-	for(n=19; n>=0; n--) m.push({
-		from: 'harish',
-		to: 'nodejs',
-		type: 'text',
-		time: (time - n*2000),
-		text: "text"+n
+	it("adding more link", function(done) {
+		rooms.link('scrollback', 'hasOccupant', 'user-harish', {entered: 420}, function(err, res) {
+			assert(!err, "error thrown - ");
+			done();	
+		});
+	});
+
+	it("querying link", function(done) {
+		users.get({by: 'occupantOf', eq: ['scrollback'] }, function(err, res) {
+			var ids = {}; 
+			assert(!err, "error thrown - ");
+			res.forEach(function(e) {
+				ids[e.id] = e;
+			});
+			assert(ids['user-harish'],"wrong room");
+			assert(ids['user-aravind'],"wrong room");
+			assert(ids['user-harish'].entered, 420,"wrong room");
+			assert(ids['user-aravind'].entered, 279,"wrong room");
+			done();	
+		});
+	});
+	it('Unlink', function (done) {
+		users.unlink('aravind', 'occupantOf', 'scrollback', function(err, res) {
+			assert(!err, "error thrown - ");
+			done();
+		});
+	});
+		it("querying link", function(done) {
+		users.get({by: 'occupantOf', eq: ['scrollback'] }, function(err, res) {
+			var ids = {}; 
+			assert(!err, "error thrown - ");
+			res.forEach(function(e) {
+				ids[e.id] = e;
+			});
+			assert(!ids['user-aravind'],"wrong room");
+			done();	
+		});
 	});
 	
-	messages.put(m, function(err, res) { if(err) throw err; done(); });
 });
-
-it('should putRoom', function (done) {
-	rooms.put({id: 'bitcoin'}, function(err, res) { if(err) throw err; done(); });
-});
-
-it('should getOneRoom', function (done) {
-	rooms.get('nodejs', function(err, res) { if(err) throw err; done(); });
-});
-
-it('should getBadRoom', function (done) {
-	rooms.get('badroom', function(err, res) { if(err) throw err; done(); });
-});
-
-it('should getRooms', function (done) {
-	rooms.get(function(err, res) { if(err) throw err; done(); });
-});
-
-it('should getAllMessages', function (done) {
-	messages.get(function(err, res) { if(err) throw err; console.log(res.length); done(); });
-});
-
-it('should getSomeMessages', function (done) {
-	var start = -time, end = -(time -(21*2000));
-	console.log(end, start);
-	messages.get({
-		by:'totime', 
-		start: ['nodejs', start],
-		end: ['nodejs', end],
-		keys: true
-	}, function(err, res) {
-		if(err) throw err;
-		console.log(res);
-		assert(res, "no response");
-		assert(res.length, "no array");
-		assert.equal(-res[0].time, start, "not correct order");
-		done();
-	});
-});
-it('should getSomeMessages', function (done) {
-	var start = -time, end = -(time -(21*2000));
-	console.log(end, start);
-	messages.get({
-		by:'totime', 
-		start: ['nodejs', start],
-		end: ['nodejs', end],
-		reverse: true,
-		keys: true
-	}, function(err, res) {
-		if(err) throw err;
-		console.log(res);
-		assert(res, "no response");
-		assert(res.length, "no array");
-		// assert(-res[0].time != start, "not reversed");
-		console.log(-res[res.length-1].time, end);
-		assert.equal(-res[res.length-1].time, end, "not correct order");
-		done();
-	});
-});
-it('should addLink1', function (done) {
-	rooms.link('scrollback', 'hasOccupant', 'aravind', {entered: 343}, function(err, res) { if(err) throw err; done(); });
-});
-
-it('should addLink2', function (done) {
-	rooms.link('bitcoin', 'hasMember', 'aravind', {role: 'owner'}, function(err, res) { if(err) throw err; done(); });
-});
-
-it('should addLinkBack', function (done) {
-	users.link('harish', 'memberOf', 'bitcoin', {role: 'moderator'}, function(err, res) { if(err) throw err; done(); });
-});
-
-it('should getLinkForward', function (done) {
-	rooms.get({by: 'hasOccupant', eq: 'aravind'}, function(err, res) { if(err) throw err; done(); });
-});
-
-it('should getLinkRevIndex', function (done) {
-	users.get({by: 'memberOf', eq: ['bitcoin', 'role', 'moderator']}, function(err, res) { if(err) throw err; done(); });
-});
-
-it('should overWriteLink', function (done) {
-	rooms.link('scrollback', 'hasOccupant', 'aravind', {entered: 123}, function(err, res) { if(err) throw err; done(); });
-});
-
-it('should getLinkForward', function (done) {
-	rooms.get({by: 'hasOccupant', eq: 'aravind'}, function(err, res) { if(err) throw err; done(); });
-}); 
-
-it('should getLinkReverse', function (done) {
-	users.get({by: 'occupantOf', eq: 'scrollback'}, function(err, res) { if(err) throw err; done(); });
-});
-
-it('should overwriteIndexedLink', function (done) {
-	users.link('harish', 'memberOf', 'bitcoin', {role: 'moderato'}, function(err, res) { if(err) throw err; done(); });
-});
-
-it('should getLinkIndexAgain', function (done) {
-	rooms.get({by: 'hasMember', eq: 'harish'}, function(err, res) { if(err) throw err; done(); });
-});
-
-it('should getLinkIndReverse', function (done) {
-	users.get({by: 'memberOf', eq: 'bitcoin'}, function(err, res) { if(err) throw err; done(); });
-});
-
-it('should goodUnlink', function (done) {
-	users.unlink('aravind', 'occupantOf', 'bitcoin', function(err, res) { if(err) throw err; done(); });
-});
-
-it('should verifyOtherLinks', function (done) {
-	rooms.get({by: 'hasOccupant', eq: 'aravind'}, function(err, res) { if(err) throw err; done(); });
-});
-
-it('should verifyOtherLinksBack', function (done) {
-	users.get({by: 'occupantOf', eq: 'scrollback'}, function(err, res) { if(err) throw err; done(); });
-});
-
-it('should badUnlink', function (done) {
-	users.unlink('aravind', 'occupantOf', 'asdf', function(err, res) { if(err) throw err; done(); });
-});
-
-it('should getLinkEmpty', function (done) {
-	users.get({by: 'occupantOf', eq: 'bitcoin'}, function(err, res) { if(err) throw err; done(); });
-});
-
-it('should delete', function (done) {
-	rooms.del('scrollback', function(err, res) { if(err) throw err; done(); });
-});
-
-it('should getRoomKeys', function (done) {
-	rooms.get({by: 'identity', eq: 'irc', keys: true}, function(err, res) { if(err) throw err; done(); });
-});
-
-it('should getMessageKeys', function (done) {
-	messages.get({by: 'totime', eq: 'scrollback', keys: true}, function(err, res) { if(err) throw err; done(); });
-});
-
-it('should mapFunction', function (done) {
-	//messages.get({
-		done();
-});
-//
-//
-//run('getTargetLinkData', function(d) {
-//	users.get({by: 'memberOf', eq: ['bitcoin', 'harish']}, d);
-//});
-//
-//run('goodUnlink', function(d) {
-//	users.unlink('aravind', 'occupantOf', 'bitcoin', d);
-//});
-//
-//run('verifyDelete', function(d) {
-//	rooms.get('scrollback', d);
-//})
-//
-//run('getRoomKeys', function(d) {
-//	rooms.get({by: 'identity', eq: 'irc', keys: true}, d);
-//});
