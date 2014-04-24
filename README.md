@@ -11,6 +11,10 @@ Indexed, relational JSON store for Node.js using flat files and [LevelDB](https:
 
 ### What's new
 
+#### v0.1.10
+- Moved all the tests to Mocha
+- Fixed issue with .get() with string ID
+
 #### v0.1.9
 - The `start` and `end` parameters of queries have been renamed `gte` and `lte` to reduce confusion 
 while querying in the reverse direction, and for consistency with the `eq` parameter. If you use
