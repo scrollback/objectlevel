@@ -1,15 +1,24 @@
 ObjectLevel
 ===========
 
-Indexed, relational JSON store for Node.js using flat files and [LevelDB](https://code.google.com/p/leveldb/)
+Indexed, relational JSON store for Node.js using [LevelDB](https://code.google.com/p/leveldb/)
 
 ## Overview ##
 
-- ObjectLevel stores JSON data in append-only flat text files and maintains indexes in LevelDB.
+- ObjectLevel stores JSON data in LevelDB.
 - Custom indexing logic can be written in JS using an API similar to CouchDB views.
 - Relations (links) between objects can be defined and used for querying efficiently.
 
 ### What's new
+
+#### v0.2.0
+- **Breaking change**: The on-disk format has changed, and data files are not compatible. (no more flat files)
+- **Breaking change**: The API for querying with link data indexes have changed to `{ by: [linkname, indexname], eq: [link_target, index_val] }`
+- Fixed: Space used by deleted data is eventually cleared (compaction). ObjectLevel is no longer bad for update-heavy workloads.
+- Fixed: Greatly improved reliability: all operations are atomic, corruption due to inconsistency between flat files and leveldb no longer possible
+
+- Refactored codebase for better maintainability
+- Improved write performance
 
 #### v0.1.11
 - Fixed issues with delete, unlink and map.
@@ -279,19 +288,3 @@ messages.unlink('msg01');
 
 When you delete an object, all links to it are deleted automatically.
 
-## Further development ##
-
-- Combining reads to improve performance
-- Rollover of data files to avoid unmanageably large files
-- Periodic compaction of data files
-- More powerful queries
-  - key filter function
-  - reduce function
-
-### Tools ###
-
-A separate objectlevel-tools project is planned, which will provide command-line utilities for:
- 1. Exploring an objectlevel data directory
- 2. Setting up continuous, automatic remote backups
- 3. Restoring an index from a data file (if LevelDB files were not backed up, or if index definitions were changed)
- 4. Setting up master-slave replication

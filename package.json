@@ -1,7 +1,7 @@
 {
   "name": "objectlevel",
-  "version": "0.1.11",
-  "description": "Generic object storage with indexes and relations using flat files and LevelDB",
+  "version": "0.2.0",
+  "description": "Generic object storage with indexes and relations using LevelDB",
   "main": "index.js",
   "scripts": {
     "test": "node test/test.js"

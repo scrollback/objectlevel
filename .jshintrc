@@ -1,6 +1,7 @@
 {
 	"undef": true,
 	"unused": true,
+	"curly": false,
 	"globals": {	"require": true, "module": true, "exports": false, 
 					"Buffer": true, "console": false, "process": false }
 }

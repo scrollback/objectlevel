@@ -1,5 +1,9 @@
 /* global it, describe */
 
+/*
+	Add tests: delete objects which have links, then try to query via links in both directions.
+*/
+
 var objectlevel = require("../index.js"),
 	store = new objectlevel('./testdb'),
 	assert = require('assert');
@@ -68,7 +72,7 @@ describe("Testing put and get: ", function() {
 
 	it('trying to get the deleted room: ', function(done) {
 		rooms.get('scrollbackteam', function(err, res) {
-			assert(!err, "error thrown - ");
+			assert(!err, "error thrown " + err);
 			assert(!res, "got wrong room");
 			done();
 		});
@@ -76,7 +80,7 @@ describe("Testing put and get: ", function() {
 
 	it('trying to get invalid room: ', function(done) {
 		rooms.get('noscrollback', function(err, res) {
-			assert(!err, "error thrown - ");
+			assert(!err, "error thrown "+ err);
 			assert(!res, "got wrong room");
 			done();
 		});
@@ -128,9 +132,15 @@ describe("Testing put and get: ", function() {
 		});
 	});
 
-	it('overwrite user: ', function(done) {
-		users.put({id: 'user-harish', name: "harish kumar v"}, function(err, res) {
+	it('overwrite user with preUpdate: ', function(done) {
+		var called = false;
+		users.put({
+			id: 'user-harish', name: "harish kumar v" 
+		}, { preUpdate: function() {
+			called = true;
+		}}, function(err, res) {
 			assert(!err, "error thrown - ");
+			assert(called, "preupdate not called");
 			done();
 		});
 	});
@@ -143,7 +153,47 @@ describe("Testing put and get: ", function() {
 			done();
 		});
 	});
+	
+	it('overwrite user with active preUpdate: ', function(done) {
+		users.put({
+			id: 'user-harish', name: "harish kumar x" 
+		}, { preUpdate: function(old, obj) {
+			obj.name = 'harish v';
+		}}, function(err, res) {
+			assert(!err, "error thrown - ");
+			done();
+		});
+	});
 
+	it('checking user overwrite 2: ', function(done) {
+		users.get('user-harish', function(err, res) {
+			assert(!err, "error thrown - ");
+			assert.equal(res.id, "user-harish", "got wrong user");
+			assert.equal(res.name, "harish v", "something wrong. value of a property is wrong");
+			done();
+		});
+	});
+
+	it('overwrite user, preUpdate cancels: ', function(done) {
+		users.put({
+			id: 'user-harish', name: "harish kz" 
+		}, { preUpdate: function() {
+			return false;
+		}}, function(err) {
+			assert(!err, "error thrown - ");
+			done();
+		});
+	});
+
+	it('checking user overwrite 3: ', function(done) {
+		users.get('user-harish', function(err, res) {
+			assert(!err, "error thrown - ");
+			assert.equal(res.id, "user-harish", "got wrong user");
+			assert.equal(res.name, "harish v", "something wrong. value of a property is wrong");
+			done();
+		});
+	});
+	
 	it('overwrite room: ', function(done) {
 		rooms.put({
 			id: 'scrollback',
@@ -196,7 +246,7 @@ describe("Testing put and get: ", function() {
 		users.get('user-harish', function(err, res) {
 			assert(!err, "error thrown - ");
 			assert.equal(res.id, "user-harish", "got wrong user");
-			assert.equal(res.name, "harish kumar v", "something wrong. value of a property is wrong");
+			assert.equal(res.name, "harish v", "something wrong. value of a property is wrong");
 			assert.equal(res.mail, "harish@IamAfreakinGenius.com", "something wrong. value of a property is wrong");
 			done();
 		});
@@ -215,7 +265,7 @@ describe("Testing put and get: ", function() {
 		users.get('user-harish', function(err, res) {
 			assert(!err, "error thrown - ");
 			assert.equal(res.id, "user-harish", "got wrong user");
-			assert.equal(res.name, "harish kumar v", "something wrong. value of a property is wrong");
+			assert.equal(res.name, "harish v", "something wrong. value of a property is wrong");
 			assert.equal(res.mail, "harish@IamAfreakinGenius.com", "something wrong. value of a property is wrong");
 			done();
 		});
@@ -342,16 +392,31 @@ describe("Testing put and get: ", function() {
 			done();
 		});
 	});
-
+	
+	it("should call map", function(done) {
+		var calls = 0;
+		messages.get({by:"totime", eq: 'scrollback', map: function(obj, push) {
+			assert(typeof push == 'function');
+			assert(typeof obj.text == 'string');
+			push(obj);
+			calls++;
+		} }, function(err, data) {
+			assert(!err, "error thrown - ");
+			assert(calls == data.length, "map called the wrong number of times.");
+			done();
+		});
+	});
+	
+//	get() without a query is no longer supported, and the test has been disabled.
+	
 	it('should getAllMessages', function (done) {
 		messages.get(function(err, data) { 
-			assert(!err, "error thrown - ");
+			assert(!err, "error thrown ");
 			assert(data.length, 40, "limit not working.");
-			done(); 
+			done();
 		});
 	});
 });
-
 
 describe("testing links: ", function() {
 	it("adding link", function(done) {
@@ -374,7 +439,7 @@ describe("testing links: ", function() {
 			var ids = {}; 
 			assert(!err, "error thrown - ");
 			assert.equal(res[0].id, "user-aravind", "wrong room");
-			assert.equal(res[0].entered, 343, "wrong room");
+			assert.equal(res[0].entered, 343, "Link Data Not Merged");
 			done();	
 		});
 	});
@@ -388,7 +453,6 @@ describe("testing links: ", function() {
 
 	it("querying link", function(done) {
 		users.get({by: 'occupantOf', eq: ['scrollback'] }, function(err, res) {
-			var ids = {}; 
 			assert(!err, "error thrown - ");
 			assert.equal(res[0].id, "user-aravind", "wrong room");
 			assert.equal(res[0].entered, 279, "wrong room");
@@ -423,14 +487,30 @@ describe("testing links: ", function() {
 			done();
 		});
 	});
-		it("querying link", function(done) {
+	it("querying link", function(done) {
 		users.get({by: 'occupantOf', eq: ['scrollback'] }, function(err, res) {
 			var ids = {}; 
 			assert(!err, "error thrown - ");
 			res.forEach(function(e) {
 				ids[e.id] = e;
 			});
-			assert(!ids['user-aravind'],"wrong room");
+			assert(!ids['user-aravind'], "unlink not effective");
+			done();	
+		});
+	});
+	
+	it("deleting linked object", function(done) {
+		users.del("user-harish", function(err) {
+			assert(!err, "error thrown - ");
+			done();
+		});
+	});
+	
+	it("querying link", function(done) {
+		users.get({by: 'occupantOf', eq: ['scrollback'], keys: true }, function(err, res) {
+			var ids = {}; 
+			assert(!err, "error thrown - ");
+			assert(!res.length, 'deleted items accessible through links');
 			done();	
 		});
 	});
