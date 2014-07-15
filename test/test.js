@@ -94,6 +94,17 @@ describe("Testing put and get: ", function() {
 			done();
 		});
 	});
+	
+	it('trying to get array of rooms: ', function(done) {
+		rooms.get(['invalid', 'scrollback'], function(err, res) {
+			assert(!err, "error thrown - ");
+			assert.equal(res.length, 2, "wrong number of results");
+			assert(typeof res[0] === 'undefined', "got room when none exists");
+			assert.equal(res[1].id, "scrollback", "got wrong room");
+			done();
+		});
+	});
+	
 
 	it('trying to get based on index: ', function(done) {
 		rooms.get({by:"identity", eq: ['irc', 'irc.rizon.net/scrollback']}, function(err, data) {

@@ -11,6 +11,10 @@ Indexed, relational JSON store for Node.js using [LevelDB](https://code.google.c
 
 ### What's new
 
+#### v0.2.2
+- Fixed an issue which sometimes caused index queries and queries with arrays of id's to return in the wrong order
+- Added a test for get by array of id's
+
 #### v0.2.0
 - **Breaking change**: The on-disk format has changed, and data files are not compatible. (no more flat files)
 - **Breaking change**: The API for querying with link data indexes have changed to `{ by: [linkname, indexname], eq: [link_target, index_val] }`
